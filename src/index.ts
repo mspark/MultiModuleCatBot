@@ -27,7 +27,7 @@ class ModuleDirector extends Module {
 	// Place for global actions which no module has to implement by its own
 	public registerActions(client: Client): void {
 		client.on('message', async (msg: Message) => {
-
+			const cmd = super.cmdFilter(msg.content);
 		});
 	}
 
@@ -38,7 +38,7 @@ class ModuleDirector extends Module {
 
 async function run() {
 	const applicationBots = await getModuleList();
-	applicationBots.push(new ModuleDirector(applicationBots.slice()));
+	applicationBots.push(new ModuleDirector(applicationBots.slice())); // use copy without ModuleDirector himself
 
 	const client: Client = new Client();
 	client.on('ready', () => {

@@ -7,22 +7,28 @@ export abstract class Module {
 
 	registerBasicCommands(client: Client): void {
 		client.on('message', async (msg: Message) => {
-			const cmd = this.getCmd(msg.content);
-			if (this.isCmdAllowed(msg.content)) {
-				if (cmd === STATS_PREFIX + this.moduleName()) {
-					this.sendStats(msg);
-				} else if (cmd === "help" + this.moduleName()) {
-					msg.reply(this.helpPage());
-				}
+			const cmd = this.cmdFilter(msg.content);
+			if (cmd === STATS_PREFIX + this.moduleName()) {
+				this.sendStats(msg);
+			} else if (cmd === "help" + this.moduleName()) {
+				msg.reply(this.helpPage());
 			}
 		});
 	}
 
-	public isCmdAllowed(cmd: string): boolean {
+	cmdFilter(cmd: string): string | undefined {
+		if (this.isCmdAllowed(cmd)) {
+			return this.getCmd(cmd);
+		} else {
+			return undefined;
+		}
+	}
+
+	isCmdAllowed(cmd: string): boolean {
 		return cmd.startsWith(PREFIX);
 	}
 
-	public getCmd(rawCmd: string): string {
+	getCmd(rawCmd: string): string {
 		return rawCmd.substring(PREFIX.length, rawCmd.length);
 	}
 

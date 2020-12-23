@@ -181,12 +181,9 @@ export class CatBot extends Module {
 
 	public registerActions(discordClient: Client) {
 		discordClient.on('message', async (msg: Message) => {
-			if (super.isCmdAllowed(msg.content)) {
-				if (msg.guild) {
-					const action = this.actionOnCmd(super.getCmd(msg.content));
-					await action(msg);
-				}
-			}
+			const cmd = super.cmdFilter(msg.content);
+			const action = this.actionOnCmd(super.getCmd(msg.content));
+			await action(msg);
 		});
 	}
 
@@ -212,14 +209,14 @@ export class CatBot extends Module {
 		console.log("Reload invoked from " + message.author);
 		message.reply("Reload...");
 		await this.fillCache(this.dir);
-		message.reply("Reloaded. Found " + this.picturePaths.length + " files");
+		message.reply("Done. Found " + this.picturePaths.length + " files");
 	}
 
 	private async list(message: Message): Promise<void> {
 		message.reply(
 			this.picturePaths
 				.map(p => p.picturePath)
-				.reduce( (a,b) => a + " | " + b, "")
+				.reduce((a,b) => a + " | " + b, "")
 		);
 	}
 
