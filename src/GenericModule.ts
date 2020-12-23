@@ -7,10 +7,12 @@ export abstract class Module {
 
 	registerBasicCommands(client: Client): void {
 		client.on('message', async (msg: Message) => {
+			const statsCmd = `${STATS_PREFIX} ${this.moduleName()}`;
+			const helpCmd = `help ${this.moduleName()}`
 			const cmd = this.cmdFilter(msg.content);
-			if (cmd === STATS_PREFIX + this.moduleName()) {
+			if (cmd === statsCmd) {
 				this.sendStats(msg);
-			} else if (cmd === "help" + this.moduleName()) {
+			} else if (cmd === helpCmd) {
 				msg.reply(this.helpPage());
 			}
 		});
