@@ -1,4 +1,4 @@
-import { CATBOT_STATS_IDENTIFIER, DbSchema, DbService, GenericDbService, PICTURES_IDENTIFIER, SEND_CACHE_IDENTIFIER } from "./dbservice";
+import { DbService, GenericDbService } from "./DbService";
 import Filesystem from "fs/promises";
 import { Client, Message } from "discord.js";
 import lowdb from "lowdb";
@@ -6,6 +6,7 @@ import { Module, PREFIX } from "./GenericModule";
 import { PropertyAccessEntityNameExpression, textChangeRangeIsUnchanged } from "typescript";
 import cron from "node-cron";
 import { WSASERVICE_NOT_FOUND } from "constants";
+import { CATBOT_STATS_IDENTIFIER, DbSchema, PICTURES_IDENTIFIER, SEND_CACHE_IDENTIFIER } from "./DbSchema";
 
 export interface PictureCacheModel {
 	id: number,

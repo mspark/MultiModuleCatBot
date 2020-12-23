@@ -2,7 +2,7 @@ import { Client, Message } from "discord.js";
 import { isElementAccessChain } from "typescript";
 import { getModuleList } from "./ModuleList";
 import { CatModule } from "./CatModule";
-import { DbService } from "./dbservice";
+import { DbService } from "./DbService";
 import { Module, PREFIX, STATS_PREFIX } from "./GenericModule";
 require('dotenv').config();
 
