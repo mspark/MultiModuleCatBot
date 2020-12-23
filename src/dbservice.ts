@@ -1,12 +1,12 @@
 import lowdb from "lowdb";
 import { default as FileAsync } from "lowdb/adapters/FileAsync";
-import { CatBotStatistics, PictureCacheModel, SendPicturesModel } from "./CatBot";
+import { CatModuleStatistics, PictureCacheModel, SendPicturesModel } from "./CatModule";
  
 export interface DbSchema {
     guilds: string[],
     cat_pictures: PictureCacheModel[],
     cat_sendCache: SendPicturesModel[],
-    cat_stats: CatBotStatistics
+    cat_stats: CatModuleStatistics
 }
 
 export class GenericDbService {}

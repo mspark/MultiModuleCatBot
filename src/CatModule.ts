@@ -22,7 +22,7 @@ export interface CatBotGuildStatistic {
 	picturesViewed: number,
 }
 
-export interface CatBotStatistics {
+export interface CatModuleStatistics {
 	guildStatistics: CatBotGuildStatistic[],
 	overallPicturesViewed: number,
 	lastCommand: Date,
@@ -63,11 +63,11 @@ class CatDbService extends GenericDbService {
 		return content.filter(a => a.guildId === guildId);
 	}
 
-	public updateDbStatistics(stats: CatBotStatistics): void{
+	public updateDbStatistics(stats: CatModuleStatistics): void{
 		this.db.assign(stats).write();
 	}
 
-	public getStatistics(): CatBotStatistics {
+	public getStatistics(): CatModuleStatistics {
 		let statistics = this.db.get(CATBOT_STATS_IDENTIFIER).value();
 		if (!statistics) {
 			console.log("No statistics found in database. Create new...");
@@ -77,8 +77,8 @@ class CatDbService extends GenericDbService {
 	}
 }
 
-class CatBotStatisticsHelper {
-	constructor(private stats: CatBotStatistics) {}
+class CatStatisticsHelper {
+	constructor(private stats: CatModuleStatistics) {}
 
 	public incrementGuildCount(guildId: string): number {
 		let guildStat = this.stats.guildStatistics?.find(e => e.guildId == guildId);
@@ -104,24 +104,24 @@ class CatBotStatisticsHelper {
 	}
 
 	// returns a copy of the current statistics
-	public getStatistics(): CatBotStatistics {
+	public getStatistics(): CatModuleStatistics {
 		const stats = JSON.parse(JSON.stringify(this.stats));
 		return stats;
 	}
 }
 
-export class CatBot extends Module {
+export class CatModule extends Module {
 	private dbService: CatDbService;
 	private picturePaths: PictureCacheModel[];
 	private dir: string;
-	private stats: CatBotStatisticsHelper;
+	private stats: CatStatisticsHelper;
 
 	constructor(dbService: DbService) {
 		super();
 		this.picturePaths = [];
 		this.dir = "";
 		this.dbService = dbService.getCustomDbService(db => new CatDbService(db)) as CatDbService;
-		this.stats = new CatBotStatisticsHelper(this.dbService.getStatistics());
+		this.stats = new CatStatisticsHelper(this.dbService.getStatistics());
 		
 		this.stats.accept(this.dbService);
         cron.schedule('5 * * * *', () => {
@@ -129,8 +129,8 @@ export class CatBot extends Module {
         });
 	}
 	
-	public static async newInstance(picturesPath: string | undefined, dbService: DbService): Promise<CatBot> {
-		const catbot = new CatBot(dbService);
+	public static async newInstance(picturesPath: string | undefined, dbService: DbService): Promise<CatModule> {
+		const catbot = new CatModule(dbService);
 		await catbot.initCache(picturesPath);
 		return catbot;
 	}
