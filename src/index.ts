@@ -1,45 +1,44 @@
 import { Client, Message } from "discord.js";
 import { isElementAccessChain } from "typescript";
-import { getBotList } from "./BotList";
+import { getModuleList } from "./BotList";
 import { CatBot } from "./CatBot";
 import { DbService } from "./dbservice";
-import { GenericBot, PREFIX } from "./GenericBot";
+import { Module, PREFIX, STATS_PREFIX } from "./GenericModule";
 require('dotenv').config();
 
-class BotDirector extends GenericBot {
-
-	constructor(private allBots: GenericBot[]) {
+class ModuleDirector extends Module {
+	
+	constructor(private allBots: Module[]) {
 		super();
 	}
-	
-	helpPage(): String {
-		return "";
-		this.allBots.forEach(element => {
-			element.helpPage();
-		});
-	
-	}
-	statisticName(): String {
-		return this.allBots.map(e => e.statisticName()).join(", ");
+
+	public sendStats(message: Message): void {
+		message.reply("Pls specify the status you want. Available: " + this.moduleNamesConcat());
 	}
 	
-	registerActions(client: Client): void {
+	public helpPage(): string {
+		return "All available modules are: "+  this.moduleNamesConcat() + "\n Call them via " + PREFIX + "help <module>";
+	}
+
+	public moduleName(): string {
+		return ""; // just the prefix
+	}
+	
+	// Place for global actions which no module has to implement by its own
+	public registerActions(client: Client): void {
 		client.on('message', async (msg: Message) => {
-			const cmd = super.getCmd(msg.content);
-			if (super.isCmdAllowed(msg.content)) {
-				if (cmd === "stats") {
-					msg.reply("Pls specify the status you want. Available: " + this.statisticName());
-				}
-				if (cmd === "help") {
-					this.helpPage();
-				}
-			}
+
 		});
+	}
+
+	private moduleNamesConcat(): string {
+		return "{" + this.allBots.map(e => e.moduleName()).join(", ") + "}";
 	}
 }
+
 async function run() {
-	const applicationBots = await getBotList();
-	applicationBots.push(new BotDirector(applicationBots.slice()));
+	const applicationBots = await getModuleList();
+	applicationBots.push(new ModuleDirector(applicationBots.slice()));
 
 	const client: Client = new Client();
 	client.on('ready', () => {
@@ -47,6 +46,7 @@ async function run() {
 	});
 
 	applicationBots.forEach(app => {
+		app.registerBasicCommands(client);
 		app.registerActions(client);
 	});
 	client.login(process.env.API_TOKEN);

@@ -1,21 +1,20 @@
-import { METHODS } from "http";
 import lowdb from "lowdb";
 import { default as FileAsync } from "lowdb/adapters/FileAsync";
 import { CatBotStatistics, PictureCacheModel, SendPicturesModel } from "./CatBot";
  
 export interface DbSchema {
     guilds: string[],
-    pictures: PictureCacheModel[],
-    sendCache: SendPicturesModel[],
-    catbot_stats: CatBotStatistics
+    cat_pictures: PictureCacheModel[],
+    cat_sendCache: SendPicturesModel[],
+    cat_stats: CatBotStatistics
 }
 
 export class GenericDbService {}
 
-export const PICTURES_IDENTIFIER = "pictures";
+export const PICTURES_IDENTIFIER = "cat_pictures";
 export const GUILD_DB_IDENTIFIER = "guilds";
-export const SEND_CACHE_IDENTIFIER = "sendCache";
-export const CATBOT_STATS_IDENTIFIER = "catbot_stats";
+export const SEND_CACHE_IDENTIFIER = "cat_sendCache";
+export const CATBOT_STATS_IDENTIFIER = "cat_stats";
 
 export class DbService {
     private db!: lowdb.LowdbAsync<DbSchema>;
@@ -36,10 +35,10 @@ export class DbService {
         }
         if (!db.has(PICTURES_IDENTIFIER).value()) {
             db.defaults({
-                pictures: [],
+                cat_pictures: [],
                 guilds: [],
-                sendCache: [],
-                catbot_stats: {}
+                cat_sendCache: [],
+                cat_stats: {}
             }).write();
         }
         this.db = db;

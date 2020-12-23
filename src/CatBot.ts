@@ -2,7 +2,7 @@ import { CATBOT_STATS_IDENTIFIER, DbSchema, DbService, GenericDbService, PICTURE
 import Filesystem from "fs/promises";
 import { Client, Message } from "discord.js";
 import lowdb from "lowdb";
-import { GenericBot, PREFIX } from "./GenericBot";
+import { Module, PREFIX } from "./GenericModule";
 import { PropertyAccessEntityNameExpression, textChangeRangeIsUnchanged } from "typescript";
 import cron from "node-cron";
 import { WSASERVICE_NOT_FOUND } from "constants";
@@ -110,7 +110,7 @@ class CatBotStatisticsHelper {
 	}
 }
 
-export class CatBot extends GenericBot {
+export class CatBot extends Module {
 	private dbService: CatDbService;
 	private picturePaths: PictureCacheModel[];
 	private dir: string;
@@ -147,10 +147,11 @@ export class CatBot extends GenericBot {
 		}
 	}
 
-	public helpPage(): String {
+	public helpPage(): string {
 		throw new Error("Method not implemented.");
 	}
-	public statisticName(): String {
+
+	public moduleName(): string {
 		return "cat";
 	}
 
@@ -200,8 +201,8 @@ export class CatBot extends GenericBot {
 				return (message: Message) => this.list(message);
 			case "pic": case "p":
 				return (message: Message) => this.sendPic(message);
-			case "stats": case "stat":
-				return (message: Message) => this.sendStats(message);
+			case "stats cat":
+				return (message: Message) => new Promise(() => this.sendStats(message));
 			default:
 				return (message: Message) => new Promise(() => "");
 		}
@@ -256,7 +257,7 @@ export class CatBot extends GenericBot {
 		return items[Math.floor(Math.random() * items.length)];
 	}
 
-	private async sendStats(message: Message): Promise<void> {
+	public sendStats(message: Message): void {
 		const overallCount = this.stats.getStatistics().overallPicturesViewed;
 		const guildCount = this.stats.getStatistics().guildStatistics.find(e => e.guildId == message.guild?.id)?.picturesViewed;
 

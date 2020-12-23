@@ -1,13 +1,13 @@
 import { CatBot } from "./CatBot";
 import { DbService } from "./dbservice";
-import { GenericBot } from "./GenericBot";
-import { GuildManagementBot } from "./GuildBot";
+import { Module } from "./GenericModule";
+// import { GuildManagementModule } from "./GuildManagementModule";
 
 
-export async function getBotList(): Promise<GenericBot[]> {
+export async function getModuleList(): Promise<Module[]> {
     const dbservice = await DbService.newInstance();;
     return [
         await CatBot.newInstance(process.env.PICTURE_DIR_PATH, dbservice),
-        new GuildManagementBot(dbservice),
+        // new GuildManagementModule(dbservice),
     ]
 }
