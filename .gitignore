@@ -1,0 +1,5 @@
+.env
+db.json
+pictures*
+node_modules
+build/
