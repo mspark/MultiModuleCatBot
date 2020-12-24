@@ -6,7 +6,7 @@ import { DbService } from "./DbService";
 import { Module, PREFIX, STATS_PREFIX } from "./GenericModule";
 require('dotenv').config();
 
-class ModuleDirector extends Module {
+class CoreModule extends Module {
 
 	constructor(private allBots: Module[]) {
 		super();
@@ -38,8 +38,9 @@ class ModuleDirector extends Module {
 
 async function run() {
 	const modules = await getModuleList();
-	modules.push(new ModuleDirector(modules.slice())); // use copy without ModuleDirector himself
+	modules.push(new CoreModule(modules.slice())); // use copy without CoreModule to avoid recursion
 	console.log(`Starting bot with ${modules.length} modules loaded`);
+	
 	const client: Client = new Client();
 	client.on('ready', () => {
 		console.log(`Logged in as ${client.user!.tag}!`);
