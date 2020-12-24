@@ -1,4 +1,4 @@
-import { Client, Collection, Guild, Message } from "discord.js";
+import { Client, Collection, Guild, Message, MessageEmbed } from "discord.js";
 import Lowdb from "lowdb";
 import { stringify } from "querystring";
 import { DbSchema, GUILD_DB_IDENTIFIER } from "./DbSchema";
@@ -21,8 +21,8 @@ class GuildManagementDbService extends GenericDbService {
     getGuildList(): string[] {
         const values =  this.db
             .get(GUILD_DB_IDENTIFIER)
-            .value() ?? [];
-        return values.map(a => a.guildId);
+            .value();
+        return values?.map(a => a.guildId) ?? [];
     }
 
     addGuild(guild: GuildSchema): void {
@@ -67,14 +67,16 @@ export class GuildManagementModule extends Module {
         return "guild";
     }
 
-    public helpPage(): string {
+    public helpPage(): MessageEmbed {
         throw new Error("Method not implemented.");
     }
 
     sendStats(message: Message): void {
-        message.channel.send({
-            content: "Guild count: " + this.customDbService.getGuildList().length
-        })
+        const embed = new MessageEmbed()
+            .setColor('#450000')
+            .setTitle("server statistics")
+            .setDescription('Total amount of servers: ' + this.customDbService.getGuildList().length);
+        message.channel.send(embed);
     }
     
     registerActions(client: Client): void {

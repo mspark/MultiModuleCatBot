@@ -46,7 +46,7 @@ class CatDbService extends GenericDbService {
 	}
 
 	public hasPictures(): boolean {
-		return this.loadPictures().length > 0 ;
+		return this.loadPictures().length > 0;
 	}
 
 	public addSendPicture(model: SendPicturesModel): void {
@@ -69,7 +69,7 @@ class CatDbService extends GenericDbService {
 	}
 
 	public getStatistics(): CatModuleStatistics {
-		let statistics = this.db.get(CATBOT_STATS_IDENTIFIER).value() ?? [];
+		let statistics = this.db.get(CATBOT_STATS_IDENTIFIER).value();
 		if (!statistics) {
 			console.log("No statistics found in database. Create new...");
 			statistics = {guildStatistics: [{guildId: "0", picturesViewed: 0}], overallPicturesViewed: 0, lastCommand: new Date()};
@@ -148,8 +148,13 @@ export class CatModule extends Module {
 		}
 	}
 
-	public helpPage(): string {
-		throw new Error("Method not implemented.");
+	public helpPage(): MessageEmbed {
+		return new MessageEmbed()
+			.setColor('#0099ff')
+			.setTitle("Help Page Cat Module")
+			.setDescription('Smart module for sending cat pictures')
+			.addField(`${PREFIX}leaderboard | ${PREFIX}lb`, "Work in progress")
+			.addField(`${PREFIX}pic`, "Sends a picture of a cat");
 	}
 
 	public moduleName(): string {
@@ -215,11 +220,13 @@ export class CatModule extends Module {
 
 	private async list(message: Message): Promise<void> {
 		const exampleEmbed = new MessageEmbed()
-			.setColor('#0099ff')
-			.setURL('https://discord.js.org/')
-			.setAuthor('Some name', 'https://i.imgur.com/wSTFkRM.png', 'https://discord.js.org')
-			.setDescription('Some description here');
-		this.picturePaths.forEach(p => exampleEmbed.addField('Berta', p.picturePath, true))
+			.setColor('#450000')
+			.setTitle("Loaded Pictures")
+			.setDescription('Loaded cat pictures from filesystem.');
+		const paths = this.picturePaths
+			.map(p => p.picturePath)
+			.join("\n");
+		exampleEmbed.addField('All', paths, true);
 		message.channel.send(exampleEmbed);
 	}
 
@@ -260,9 +267,10 @@ export class CatModule extends Module {
 	public sendStats(message: Message): void {
 		const overallCount = this.stats.getStatistics().overallPicturesViewed;
 		const guildCount = this.stats.getStatistics().guildStatistics.find(e => e.guildId == message.guild?.id)?.picturesViewed;
-
-		message.channel.send({
-			content: "ToDo: Make a fancy statistic page here! \n Pictures Send on this server: " + guildCount + " . Overall count: " + overallCount
-		})
+		const embed =  new MessageEmbed()
+			.setColor('#0099ff')
+			.setTitle("Cat module statistics")
+			.setDescription(`😻 Total cat pictures send: ${overallCount} \n 🐈 Cat pictures send on this server: ${guildCount}`);
+		message.channel.send(embed);
 	}
 }

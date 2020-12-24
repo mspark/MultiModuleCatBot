@@ -1,4 +1,4 @@
-import { Client, Message } from "discord.js";
+import { Client, Message, MessageEmbed } from "discord.js";
 import { isElementAccessChain } from "typescript";
 import { getModuleList } from "./ModuleList";
 import { CatModule } from "./CatModule";
@@ -13,11 +13,20 @@ class CoreModule extends Module {
 	}
 
 	public sendStats(message: Message): void {
-		message.reply("Pls specify the status you want. Available: " + this.moduleNamesConcat());
+		const embed = new MessageEmbed()
+			.setColor('#0099ff')
+			.setTitle("Help Page")
+			.setDescription('Specify the module stats you want. Do this with: \`!stats <module>\`')
+			.addField('Available Modules', this.moduleNamesConcat());
+		message.channel.send(embed);
 	}
 	
-	public helpPage(): string {
-		return "All available modules are: "+  this.moduleNamesConcat() + "\n Call them via " + PREFIX + "help <module>";
+	public helpPage(): MessageEmbed {
+		return new MessageEmbed()
+			.setColor('#0099ff')
+			.setTitle("Help Page")
+			.setDescription('Welcome to this multi module bot. Please call the respective help page of each module via \`!help <module>\`')
+			.addField('Available Modules', this.moduleNamesConcat(), true);
 	}
 
 	public moduleName(): string {
@@ -32,7 +41,7 @@ class CoreModule extends Module {
 	}
 
 	private moduleNamesConcat(): string {
-		return "{" + this.allBots.map(e => e.moduleName()).join(", ") + "}";
+		return this.allBots.map(e => e.moduleName()).join("\n");
 	}
 }
 

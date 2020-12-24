@@ -1,4 +1,4 @@
-import { Client, Message } from "discord.js";
+import { Client, Message, MessageEmbed } from "discord.js";
 
 export const PREFIX = "!"
 export const STATS_PREFIX = "stats";
@@ -43,7 +43,7 @@ export abstract class Module {
 	 */
 	abstract registerActions(client: Client): void;
 
-	abstract helpPage(): string;
+	abstract helpPage(): MessageEmbed;
 
 	abstract sendStats(message: Message): void;
 }
