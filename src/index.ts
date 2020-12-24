@@ -37,9 +37,9 @@ class ModuleDirector extends Module {
 }
 
 async function run() {
-	const applicationBots = await getModuleList();
-	applicationBots.push(new ModuleDirector(applicationBots.slice())); // use copy without ModuleDirector himself
-
+	const modules = await getModuleList();
+	modules.push(new ModuleDirector(modules.slice())); // use copy without ModuleDirector himself
+	console.log(`Starting bot with ${modules.length} modules loaded`);
 	const client: Client = new Client();
 	client.on('ready', () => {
 		console.log(`Logged in as ${client.user!.tag}!`);
@@ -48,7 +48,7 @@ async function run() {
 		console.log(`The WebSocket has closed and will no longer attempt to reconnect`);
 	});
 
-	applicationBots.forEach(app => {
+	modules.forEach(app => {
 		app.registerBasicCommands(client);
 		app.registerActions(client);
 	});

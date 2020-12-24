@@ -100,7 +100,7 @@ class CatStatisticsHelper {
 	}
 	
 	accept(dbService: CatDbService): void {
-		console.log("Save statistics.")
+		console.log("DEBUG: Save statistics.")
 		dbService.updateDbStatistics(this.stats);
 	}
 
