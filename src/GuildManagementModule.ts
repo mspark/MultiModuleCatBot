@@ -19,10 +19,10 @@ class GuildManagementDbService extends GenericDbService {
     }
 
     getGuildList(): string[] {
-        return this.db
+        const values =  this.db
             .get(GUILD_DB_IDENTIFIER)
-            .value()
-            .map(a => a.guildId);
+            .value() ?? [];
+        return values.map(a => a.guildId);
     }
 
     addGuild(guild: GuildSchema): void {

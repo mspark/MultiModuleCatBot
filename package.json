@@ -2,9 +2,9 @@
   "name": "testproject",
   "version": "1.0.0",
   "description": "",
-  "main": "./build/index.js",
+  "main": "./build/main.js",
   "scripts": {
-    "start": "tsc && node build/index.js",
+    "start": "tsc && node build/main.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "",

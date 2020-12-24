@@ -1,6 +1,6 @@
 import { DbService, GenericDbService } from "./DbService";
 import Filesystem from "fs/promises";
-import { Client, Message } from "discord.js";
+import { Client, Message, MessageEmbed } from "discord.js";
 import lowdb from "lowdb";
 import { Module, PREFIX } from "./GenericModule";
 import { PropertyAccessEntityNameExpression, textChangeRangeIsUnchanged } from "typescript";
@@ -34,9 +34,9 @@ class CatDbService extends GenericDbService {
 	constructor(private db: lowdb.LowdbAsync<DbSchema>) {
 		super();
 	}
-	
+
 	public loadPictures(): PictureCacheModel[] {
-		return this.db.get(PICTURES_IDENTIFIER).value();
+		return this.db.get(PICTURES_IDENTIFIER).value() ?? [];
 	}
 
 	public refreshPicturePath(models: PictureCacheModel[]): void {
@@ -46,7 +46,7 @@ class CatDbService extends GenericDbService {
 	}
 
 	public hasPictures(): boolean {
-		return this.db.get(PICTURES_IDENTIFIER).value().length > 0;
+		return this.loadPictures().length > 0 ;
 	}
 
 	public addSendPicture(model: SendPicturesModel): void {
@@ -60,16 +60,16 @@ class CatDbService extends GenericDbService {
 	}
 
 	public alreadySentPictures(guildId: string): SendPicturesModel[] {
-		let content = this.db.get(SEND_CACHE_IDENTIFIER).value();
+		let content = this.db.get(SEND_CACHE_IDENTIFIER).value() ?? [];
 		return content.filter(a => a.guildId === guildId);
 	}
 
-	public updateDbStatistics(stats: CatModuleStatistics): void{
+	public updateDbStatistics(stats: CatModuleStatistics): void {
 		this.db.assign(stats).write();
 	}
 
 	public getStatistics(): CatModuleStatistics {
-		let statistics = this.db.get(CATBOT_STATS_IDENTIFIER).value();
+		let statistics = this.db.get(CATBOT_STATS_IDENTIFIER).value() ?? [];
 		if (!statistics) {
 			console.log("No statistics found in database. Create new...");
 			statistics = {guildStatistics: [{guildId: "0", picturesViewed: 0}], overallPicturesViewed: 0, lastCommand: new Date()};
@@ -214,11 +214,13 @@ export class CatModule extends Module {
 	}
 
 	private async list(message: Message): Promise<void> {
-		message.reply(
-			this.picturePaths
-				.map(p => p.picturePath)
-				.reduce((a,b) => a + " | " + b, "")
-		);
+		const exampleEmbed = new MessageEmbed()
+			.setColor('#0099ff')
+			.setURL('https://discord.js.org/')
+			.setAuthor('Some name', 'https://i.imgur.com/wSTFkRM.png', 'https://discord.js.org')
+			.setDescription('Some description here');
+		this.picturePaths.forEach(p => exampleEmbed.addField('Berta', p.picturePath, true))
+		message.channel.send(exampleEmbed);
 	}
 
 	private async sendPic(message: Message): Promise<void> {
