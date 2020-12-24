@@ -10,9 +10,9 @@ export abstract class Module {
 			const statsCmd = `${STATS_PREFIX} ${this.moduleName()}`;
 			const helpCmd = `help ${this.moduleName()}`
 			const cmd = this.cmdFilter(msg.content);
-			if (cmd === statsCmd) {
+			if (cmd === statsCmd.trim()) {
 				this.sendStats(msg);
-			} else if (cmd === helpCmd) {
+			} else if (cmd === helpCmd.trim()) {
 				msg.reply(this.helpPage());
 			}
 		});
