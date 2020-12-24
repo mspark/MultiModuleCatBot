@@ -30,8 +30,4 @@ export class DbService {
     public getCustomDbService(func: (db: lowdb.LowdbAsync<DbSchema>) => GenericDbService ): GenericDbService {
         return func(this.db);
     }
-
-    public getGuildList() : string[] {
-        return this.db.get(GUILD_DB_IDENTIFIER).value();
-    }
 }

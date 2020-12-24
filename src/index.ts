@@ -7,7 +7,7 @@ import { Module, PREFIX, STATS_PREFIX } from "./GenericModule";
 require('dotenv').config();
 
 class ModuleDirector extends Module {
-	
+
 	constructor(private allBots: Module[]) {
 		super();
 	}
@@ -43,6 +43,9 @@ async function run() {
 	const client: Client = new Client();
 	client.on('ready', () => {
 		console.log(`Logged in as ${client.user!.tag}!`);
+	});
+	client.on("disconnect", function(event){
+		console.log(`The WebSocket has closed and will no longer attempt to reconnect`);
 	});
 
 	applicationBots.forEach(app => {

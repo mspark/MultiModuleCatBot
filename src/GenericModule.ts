@@ -36,6 +36,11 @@ export abstract class Module {
 
 	abstract moduleName(): string;
 
+	/**
+	 * Register own actions. Be aware, the client is not connected here. 
+	 * 
+	 * @param client Discord client before without a connected state
+	 */
 	abstract registerActions(client: Client): void;
 
 	abstract helpPage(): string;
