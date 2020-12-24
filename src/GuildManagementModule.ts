@@ -113,20 +113,19 @@ class GuildRefresher {
     }
 
     setGuildsToActive(): GuildRefresher {
-        for (const gid in this.guilds.keys()) {
+        this.guilds.forEach((guild: Guild, gid: string) => {
             if (this.customDbService.getGuildList().includes(gid)) {
                 this.customDbService.setState(gid, true);
             }
-        }
+        });
         return this;
     }
 
     setGuildsToInactive(): GuildRefresher {
-        this.customDbService.getGuildList().forEach(e => {
-            if (!this.guilds.has(e)) {
-                this.customDbService.setState(e, false);
-            }
-        });
+        this.customDbService
+            .getGuildList()
+            .filter(e => !this.guilds.has(e))
+            .forEach(e => this.customDbService.setState(e, false));
         return this;
     }
 
