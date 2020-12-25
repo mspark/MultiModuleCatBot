@@ -3,10 +3,7 @@ import Filesystem from "fs/promises";
 import { Client, Message, MessageEmbed } from "discord.js";
 import lowdb from "lowdb";
 import { Module, PREFIX } from "./GenericModule";
-import { PropertyAccessEntityNameExpression, textChangeRangeIsUnchanged } from "typescript";
-import cron from "node-cron";
-import { WSASERVICE_NOT_FOUND } from "constants";
-import { CATBOT_STATS_IDENTIFIER, DbSchema, PICTURES_IDENTIFIER, SEND_CACHE_IDENTIFIER } from "./DbSchema";
+import { CATBOT_STATS_COUNT, CATBOT_STATS_IDENTIFIER, DbSchema, PICTURES_IDENTIFIER, SEND_CACHE_IDENTIFIER } from "./DbSchema";
 
 export interface PictureCacheModel {
 	id: number,
@@ -21,12 +18,6 @@ export interface SendPicturesModel {
 export interface CatBotGuildStatistic {
 	guildId: string,
 	picturesViewed: number,
-}
-
-export interface CatModuleStatistics {
-	guildStatistics: CatBotGuildStatistic[],
-	overallPicturesViewed: number,
-	lastCommand: Date,
 }
 
 class CatDbService extends GenericDbService {
@@ -63,51 +54,51 @@ class CatDbService extends GenericDbService {
 		let content = this.db.get(SEND_CACHE_IDENTIFIER).value() ?? [];
 		return content.filter(a => a.guildId === guildId);
 	}
-
-	public updateDbStatistics(stats: CatModuleStatistics): void {
-		this.db.assign(stats).write();
-	}
-
-	public getStatistics(): CatModuleStatistics {
-		let statistics = this.db.get(CATBOT_STATS_IDENTIFIER).value();
-		if (!statistics) {
-			console.log("No statistics found in database. Create new...");
-			statistics = {guildStatistics: [{guildId: "0", picturesViewed: 0}], overallPicturesViewed: 0, lastCommand: new Date()};
-		}
-		return statistics;
-	}
 }
 
-class CatStatisticsHelper {
-	constructor(private stats: CatModuleStatistics) {}
+interface Statistics {
+	guildStats: CatBotGuildStatistic[],
+	overallPicturesViewed: number,
+}
 
-	public incrementGuildCount(guildId: string): number {
-		let guildStat = this.stats.guildStatistics?.find(e => e.guildId == guildId);
-		if (guildStat) {
-			return guildStat.picturesViewed++;
+class CatStatisticsDbService extends GenericDbService {
+
+	constructor(private db: lowdb.LowdbAsync<DbSchema>) {
+		super();
+	}
+
+	public incrementGuildCount(guildId: string) {
+		const guild = this.db
+			.get(CATBOT_STATS_IDENTIFIER)
+			.find({guildId: guildId});
+		if (guild.isEmpty().value()) {
+			this.createGuildInDb(guildId);
 		} else {
-			this.stats.guildStatistics = [{guildId: guildId, picturesViewed: 1}];
-			return 1;
+			guild.update('picturesViewed', count => count + 1).write();
 		}
 	}
 
-	public incrementOverallCount(): number {
-		return this.stats.overallPicturesViewed++;
+	public createGuildInDb(guildId: string) {
+		const newGuildStat = {
+			guildId: guildId, 
+			picturesViewed: 1,
+		} as CatBotGuildStatistic;
+		this.db
+			.get(CATBOT_STATS_IDENTIFIER)
+			.push(newGuildStat)
+			.write();
 	}
 
-	public updateLastCmd(): void  {
-		this.stats.lastCommand = new Date();
-	}
-	
-	accept(dbService: CatDbService): void {
-		console.log("DEBUG: Save statistics.")
-		dbService.updateDbStatistics(this.stats);
+	public incrementOverallCount(): void {
+		this.db
+			.update(CATBOT_STATS_COUNT, c => c + 1)
+			.write()
 	}
 
-	// returns a copy of the current statistics
-	public getStatistics(): CatModuleStatistics {
-		const stats = JSON.parse(JSON.stringify(this.stats));
-		return stats;
+	public getStatistics(): Statistics {
+		const guildStats = this.db.get(CATBOT_STATS_IDENTIFIER).value();
+		const overallCount = this.db.get(CATBOT_STATS_COUNT).value();
+		return {guildStats: guildStats, overallPicturesViewed: overallCount};
 	}
 }
 
@@ -115,19 +106,14 @@ export class CatModule extends Module {
 	private dbService: CatDbService;
 	private picturePaths: PictureCacheModel[];
 	private dir: string;
-	private stats: CatStatisticsHelper;
+	private statsDbService: CatStatisticsDbService;
 
 	constructor(dbService: DbService) {
 		super();
 		this.picturePaths = [];
 		this.dir = "";
 		this.dbService = dbService.getCustomDbService(db => new CatDbService(db)) as CatDbService;
-		this.stats = new CatStatisticsHelper(this.dbService.getStatistics());
-		
-		this.stats.accept(this.dbService);
-        cron.schedule('5 * * * *', () => {
-			this.stats.accept(this.dbService);
-        });
+		this.statsDbService = dbService.getCustomDbService(db => new CatStatisticsDbService(db)) as CatStatisticsDbService;
 	}
 	
 	public static async newInstance(picturesPath: string | undefined, dbService: DbService): Promise<CatModule> {
@@ -194,7 +180,6 @@ export class CatModule extends Module {
 	}
 
 	private actionOnCmd(cmd: string): (message: Message) => Promise<void>  {
-		this.stats.updateLastCmd();
 		switch (cmd) {
 			case "reload": case "r":
 				return async (message: Message) => await this.reload(message);
@@ -204,8 +189,6 @@ export class CatModule extends Module {
 				return (message: Message) => this.list(message);
 			case "pic": case "p":
 				return (message: Message) => this.sendPic(message);
-			case "stats cat":
-				return (message: Message) => new Promise(() => this.sendStats(message));
 			default:
 				return (message: Message) => new Promise(() => "");
 		}
@@ -232,8 +215,8 @@ export class CatModule extends Module {
 
 	private async sendPic(message: Message): Promise<void> {
 		const guildId = message.guild?.id ?? "0";
-		this.stats.incrementGuildCount(guildId);
-		this.stats.incrementOverallCount();
+		this.statsDbService.incrementGuildCount(guildId);
+		this.statsDbService.incrementOverallCount();
 		let alreadySentIds = this.dbService.alreadySentPictures(guildId)
 			.map(entry => entry.sendPictureId);
 		const randomPicId = this.generateRandomValidPictureId(alreadySentIds);
@@ -265,12 +248,13 @@ export class CatModule extends Module {
 	}
 
 	public sendStats(message: Message): void {
-		const overallCount = this.stats.getStatistics().overallPicturesViewed;
-		const guildCount = this.stats.getStatistics().guildStatistics.find(e => e.guildId == message.guild?.id)?.picturesViewed;
+		const stats = this.statsDbService.getStatistics();
+		const guildStats = stats.guildStats.find(e => e.guildId == message.guild?.id ?? false);
 		const embed =  new MessageEmbed()
 			.setColor('#0099ff')
 			.setTitle("Cat module statistics")
-			.setDescription(`😻 Total cat pictures send: ${overallCount} \n 🐈 Cat pictures send on this server: ${guildCount}`);
+			.setDescription(`😻 Total cat pictures send: ${stats.overallPicturesViewed} \n 
+				🐈 Cat pictures send on this server: ${guildStats?.picturesViewed}`);
 		message.channel.send(embed);
 	}
 }

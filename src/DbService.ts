@@ -16,13 +16,17 @@ export class DbService {
     }
 
     private async initDatabase(): Promise<void> {
-        const adapter = new FileAsync("db.json");
+        const path = "db.json";
+        const adapter = new FileAsync(path);
         const db = await lowdb(adapter);
         if (!db) {
             throw new Error("Database couldn't be initialized");
         }
-        if (!db.has("init")) {
+        if (!db.has('init').value()) {
+            // potential to update tb here when init is present but false
+            console.log("Initialize Database to " + path)
             db.defaults(defaultSchema).write();
+            db.update('init', i => true).write();
         }
         this.db = db;
     }

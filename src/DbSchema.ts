@@ -1,23 +1,26 @@
-import { CatModuleStatistics, PictureCacheModel, SendPicturesModel } from "./CatModule";
+import { CatBotGuildStatistic, PictureCacheModel, SendPicturesModel } from "./CatModule";
 import { GuildSchema } from "./GuildManagementModule";
 
 export const PICTURES_IDENTIFIER = "cat_pictures";
 export const GUILD_DB_IDENTIFIER = "guilds";
 export const SEND_CACHE_IDENTIFIER = "cat_sendCache";
 export const CATBOT_STATS_IDENTIFIER = "cat_stats";
+export const CATBOT_STATS_COUNT = "cat_stats_count";
 
 export interface DbSchema {
     init: boolean,
     guilds: GuildSchema[],
     cat_pictures: PictureCacheModel[],
     cat_sendCache: SendPicturesModel[],
-    cat_stats: CatModuleStatistics
+    cat_stats: CatBotGuildStatistic[],
+    cat_stats_count: number,
 }
 
 export const defaultSchema = {
-    init: true,
+    init: false,
     cat_pictures: [],
     guilds: [],
     cat_sendCache: [],
-    cat_stats: {}
-};
+    cat_stats: [],
+    cat_stats_count: 0
+} as DbSchema;

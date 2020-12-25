@@ -91,7 +91,6 @@ export class GuildManagementModule extends Module {
             new GuildRefresher(guilds, this.customDbService)
                 .addMissingToDb()
                 .setGuildsToInactive()
-                .setGuildsToActive()
                 .logNumber();
         });
     }
@@ -99,25 +98,18 @@ export class GuildManagementModule extends Module {
 
 class GuildRefresher {
     constructor(private guilds: Collection<string, Guild>, private customDbService: GuildManagementDbService) {}
-    
+
     addMissingToDb(): GuildRefresher {
         this.guilds.forEach((guild: Guild, gid: string) => {
-            if (!this.customDbService.getGuildList().includes(gid)) {
+            if (this.customDbService.getGuildList().includes(gid)) {
+                this.customDbService.setState(gid, true);
+            } else {
                 this.customDbService.addGuild({
                     guildId: gid,
                     isActive: true,
                     guildName: this.guilds.get(gid)?.name ?? "unknown",
                     lastAction: new Date()
                 });
-            }
-        });
-        return this;
-    }
-
-    setGuildsToActive(): GuildRefresher {
-        this.guilds.forEach((guild: Guild, gid: string) => {
-            if (this.customDbService.getGuildList().includes(gid)) {
-                this.customDbService.setState(gid, true);
             }
         });
         return this;
