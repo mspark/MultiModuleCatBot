@@ -12,7 +12,7 @@ export interface GuildSchema {
     lastAction: Date
 }
 
-class GuildManagementDbService extends GenericDbService {
+export class GuildManagementDbService extends GenericDbService {
 
     constructor(private db: Lowdb.LowdbAsync<DbSchema>) {
         super();
@@ -30,6 +30,13 @@ class GuildManagementDbService extends GenericDbService {
             .get(GUILD_DB_IDENTIFIER)
             .push(guild)
             .write();
+    }
+
+    getGuild(gid: string): GuildSchema | undefined{
+        return this.db
+            .get(GUILD_DB_IDENTIFIER)
+            .find({guildId: gid})
+            .value();
     }
 
     removeGuild(gid: string): void {

@@ -4,6 +4,7 @@ import { Client, Message, MessageEmbed } from "discord.js";
 import lowdb from "lowdb";
 import { Module, PREFIX } from "./GenericModule";
 import { CATBOT_STATS_COUNT, CATBOT_STATS_IDENTIFIER, DbSchema, PICTURES_IDENTIFIER, SEND_CACHE_IDENTIFIER } from "./DbSchema";
+import { GuildManagementDbService } from "./GuildManagementModule";
 
 export interface PictureCacheModel {
 	id: number,
@@ -103,17 +104,17 @@ class CatStatisticsDbService extends GenericDbService {
 }
 
 export class CatModule extends Module {
-	private dbService: CatDbService;
+	private catDbService: CatDbService;
 	private picturePaths: PictureCacheModel[];
 	private dir: string;
 	private statsDbService: CatStatisticsDbService;
 
-	constructor(dbService: DbService) {
+	constructor(private dbs: DbService) {
 		super();
 		this.picturePaths = [];
 		this.dir = "";
-		this.dbService = dbService.getCustomDbService(db => new CatDbService(db)) as CatDbService;
-		this.statsDbService = dbService.getCustomDbService(db => new CatStatisticsDbService(db)) as CatStatisticsDbService;
+		this.catDbService = dbs.getCustomDbService(db => new CatDbService(db)) as CatDbService;
+		this.statsDbService = dbs.getCustomDbService(db => new CatStatisticsDbService(db)) as CatStatisticsDbService;
 	}
 	
 	public static async newInstance(picturesPath: string | undefined, dbService: DbService): Promise<CatModule> {
@@ -127,7 +128,7 @@ export class CatModule extends Module {
 			console.log("Warning: No PICTURE_DIR_PATH in .env specified. Using ./pictures/")
 		}
 		this.dir = picturesPath ?? "./pictures/"
-		if (this.dbService.hasPictures()) {
+		if (this.catDbService.hasPictures()) {
 			this.readCache();
 		} else {
 			await this.fillCache(this.dir);
@@ -149,13 +150,13 @@ export class CatModule extends Module {
 
 	private async fillCache(filePath: string): Promise<void> {
 		const pictureModels = await this.readFiles(filePath);
-		this.dbService.refreshPicturePath(pictureModels);
+		this.catDbService.refreshPicturePath(pictureModels);
 		console.log("Filled cache with " + pictureModels.length + " paths")
 		this.picturePaths = pictureModels;
 	}
 
 	private readCache(): void {
-		this.picturePaths = this.dbService.loadPictures();
+		this.picturePaths = this.catDbService.loadPictures();
 		console.log("Loaded " + this.picturePaths.length + " picture paths from database");
 	}
 
@@ -189,6 +190,8 @@ export class CatModule extends Module {
 				return (message: Message) => this.list(message);
 			case "pic": case "p":
 				return (message: Message) => this.sendPic(message);
+			case "leaderboard": case "lb":
+				return (message: Message) => new Promise(() => this.sendLeaderboard(message));
 			default:
 				return (message: Message) => new Promise(() => "");
 		}
@@ -217,7 +220,7 @@ export class CatModule extends Module {
 		const guildId = message.guild?.id ?? "0";
 		this.statsDbService.incrementGuildCount(guildId);
 		this.statsDbService.incrementOverallCount();
-		let alreadySentIds = this.dbService.alreadySentPictures(guildId)
+		let alreadySentIds = this.catDbService.alreadySentPictures(guildId)
 			.map(entry => entry.sendPictureId);
 		const randomPicId = this.generateRandomValidPictureId(alreadySentIds);
 		const randomPicPath = this.picturePaths.find(entry => entry.id == randomPicId)?.picturePath;
@@ -231,13 +234,13 @@ export class CatModule extends Module {
 			message.channel.send({
 				files: [randomPicPath]
 			});
-			this.dbService.addSendPicture({guildId: guildId, sendPictureId: randomPicId})
+			this.catDbService.addSendPicture({guildId: guildId, sendPictureId: randomPicId})
 		}
 	}
 
 	private resetCache(guildId: string): void {
 		console.log("Reset cache for guild: " + guildId)
-		this.dbService.deleteSendPictures(guildId);
+		this.catDbService.deleteSendPictures(guildId);
 	}
 
 	private generateRandomValidPictureId(alreadySentIds: number[]) {
@@ -256,5 +259,34 @@ export class CatModule extends Module {
 			.setDescription(`😻 Total cat pictures send: ${stats.overallPicturesViewed} \n 
 				🐈 Cat pictures send on this server: ${guildStats?.picturesViewed}`);
 		message.channel.send(embed);
+	}
+
+	public sendLeaderboard(message: Message): void {
+		const guildService = this.dbs.getCustomDbService(db => new GuildManagementDbService(db)) as GuildManagementDbService;
+		const sortedGuildNames = this.statsDbService
+			.getStatistics().guildStats
+			.sort((a,b) => a.picturesViewed - b.picturesViewed)
+			.map(guild => this.createLeaderboardLine(guild));
+		const embed = new MessageEmbed()
+			.setColor("#0099ff")
+			.setTitle("Cat Pictures - Leaderboard")
+			.setDescription(this.createLeaderboardDescription(sortedGuildNames));
+		message.channel.send(embed);
+	}
+
+	private createLeaderboardDescription(sortedGuildNames: string[]): string {
+		console.log(sortedGuildNames);
+		const emojis = ["🏆", "🥈", "🥉"];
+		let description = "";
+		for (let index = 0; index < 3; index++) {
+			description += emojis[index] + " " + sortedGuildNames[index] + "\n";
+		}
+		return description;
+	}
+
+	private createLeaderboardLine(guildStat: CatBotGuildStatistic) {
+		const guildDbService = this.dbs.getCustomDbService(db => new GuildManagementDbService(db)) as GuildManagementDbService;
+		const guild = guildDbService.getGuild(guildStat.guildId);
+		return `${guild?.guildName ?? "<UNAVAILABLE>"} | ${guildStat.picturesViewed} Pictures Viewed`;
 	}
 }
