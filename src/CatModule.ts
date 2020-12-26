@@ -5,6 +5,7 @@ import lowdb from "lowdb";
 import { Module, PREFIX } from "./GenericModule";
 import { CATBOT_STATS_COUNT, CATBOT_STATS_IDENTIFIER, DbSchema, PICTURES_IDENTIFIER, SEND_CACHE_IDENTIFIER } from "./DbSchema";
 import { GuildManagementDbService } from "./GuildManagementModule";
+import { CmdActionAsync, Perm } from "./CmdPermUtils";
 
 export interface PictureCacheModel {
 	id: number,
@@ -176,24 +177,27 @@ export class CatModule extends Module {
 		discordClient.on('message', async (msg: Message) => {
 			const cmd = super.cmdFilter(msg.content);
 			const action = this.actionOnCmd(super.getCmd(msg.content));
-			await action(msg);
+			await action.invokeWithAutPermissoins(msg);
 		});
 	}
 
-	private actionOnCmd(cmd: string): (message: Message) => Promise<void>  {
+	private actionOnCmd(cmd: string): CmdActionAsync  {
 		switch (cmd) {
 			case "reload": case "r":
-				return async (message: Message) => await this.reload(message);
+				return new CmdActionAsync(message => this.reload(message))
+					.setNeededPermission([Perm.BOT_ADMIN]);
 			case "reset":
-				return (message: Message) => new Promise(() => this.resetCache(message.guild?.id ?? "0"));
+				return new CmdActionAsync(message => new Promise( () => this.resetCache(message.guild?.id ?? "0")))
+					.setNeededPermission([Perm.BOT_ADMIN]);
 			case "list": case "l":
-				return (message: Message) => this.list(message);
+				return new CmdActionAsync(message => this.list(message))
+					.setNeededPermission([Perm.BOT_ADMIN]);
 			case "pic": case "p":
-				return (message: Message) => this.sendPic(message);
+				return new CmdActionAsync(message => this.sendPic(message));
 			case "leaderboard": case "lb":
-				return (message: Message) => new Promise(() => this.sendLeaderboard(message));
+				return new CmdActionAsync(message => new Promise(() => this.sendLeaderboard(message)));
 			default:
-				return (message: Message) => new Promise(() => "");
+				return new CmdActionAsync(message => new Promise(() => ""));
 		}
 	}
 

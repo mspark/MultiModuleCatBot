@@ -6,6 +6,19 @@ import { DbService } from "./DbService";
 import { Module, PREFIX, STATS_PREFIX } from "./GenericModule";
 require('dotenv').config();
 
+export interface Config {
+	apiToken: string
+	botAdminList?: string[]
+	catPicturesPath?: string
+}
+
+export const CONFIG = {
+	apiToken: process.env.API_TOKEN,
+	botAdminList: process.env.BOT_ADMINS?.split(","),
+	catPicturesPath: process.env.PICTURE_DIR_PATH
+}
+
+
 class CoreModule extends Module {
 
 	constructor(private allBots: Module[]) {
@@ -37,6 +50,12 @@ class CoreModule extends Module {
 	public registerActions(client: Client): void {
 		client.on('message', async (msg: Message) => {
 			const cmd = super.cmdFilter(msg.content);
+			if (cmd == "id") {
+				msg.reply("Your discord id: " + msg.author.id); 
+			}
+			if (cmd == "invite") {
+				msg.channel.send("TODO");
+			}
 		});
 	}
 
