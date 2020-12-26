@@ -266,6 +266,7 @@ export class CatModule extends Module {
 		const sortedGuildNames = this.statsDbService
 			.getStatistics().guildStats
 			.sort((a,b) => a.picturesViewed - b.picturesViewed)
+			.reverse()
 			.map(guild => this.createLeaderboardLine(guild));
 		const embed = new MessageEmbed()
 			.setColor("#0099ff")
@@ -275,7 +276,6 @@ export class CatModule extends Module {
 	}
 
 	private createLeaderboardDescription(sortedGuildNames: string[]): string {
-		console.log(sortedGuildNames);
 		const emojis = ["🏆", "🥈", "🥉"];
 		let description = "";
 		for (let index = 0; index < 3; index++) {
