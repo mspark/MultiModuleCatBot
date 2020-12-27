@@ -164,18 +164,30 @@ class PicturesFileReader {
 		const files = await this.getRealtivePicPaths();
 		let cacheEntrys: PictureCacheModel[] = [];
 		for (let index = 0; index < files.length; index++) {
-			const singleFile = files[index];
-			const possibleCatname = singleFile.split("/")[1]; // first one should be the root path, second one could be the file itself
-			let pictureCacheEntry: PictureCacheModel;
-			if (this.isDirectory(possibleCatname)) {
-				pictureCacheEntry = { id: index + 1, catName: possibleCatname, picturePath: singleFile};
-			} else {
-				pictureCacheEntry = { id: index + 1, picturePath: singleFile};
+			const singleFilePath = files[index];
+			const catname = await this.catNameFromFile(singleFilePath);
+			let pictureCacheEntry: PictureCacheModel = { id: index + 1, picturePath: singleFilePath};
+			if (catname) {
+				pictureCacheEntry.catName = catname;
 			}
 			cacheEntrys.push(pictureCacheEntry);
-			console.log("Found " + singleFile);
+			console.log("Found " + singleFilePath);
 		}
 		return cacheEntrys;
+	}
+
+	private async catNameFromFile(path: string): Promise<string | undefined> {
+		console.log(path.substr(this.dir.length, path.length));
+		const possibleCatname = 
+			path
+			.substr(this.dir.length, path.length) // remove path to workdir
+			.split("/")[1]; // first element is always empty; the second element could be the file itself or a dir
+			let catname: string | undefined = undefined;
+			console.log(possibleCatname);
+		if (await this.isDirectory(this.dir + "/" + possibleCatname)) {
+			catname = possibleCatname;
+		}
+		return catname;
 	}
 
 	private async isDirectory(fullPathFile: string): Promise<boolean> {
@@ -333,7 +345,7 @@ export class CatModule extends Module {
 			this.sendPic(message);
 		} else {
 			message.channel.send({
-				content: `A photo of ${randomPicObj.catName}`,
+				content: `A photo of ${randomPicObj.catName ?? "a cat"}`,
 				files: [randomPicObj?.picturePath]
 			});
 			this.catDbService.addSendPicture({guildId: guildId, sendPictureId: randomPicId})
