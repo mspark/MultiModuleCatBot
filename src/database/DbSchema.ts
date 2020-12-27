@@ -1,5 +1,5 @@
-import { CatBotGuildStatistic, PictureCacheModel, SendPicturesModel } from "./CatModule";
-import { GuildSchema } from "./GuildManagementModule";
+import { CatBotGuildStatistic, PictureCacheModel, SendPicturesModel } from "../catModule/types";
+import { GuildSchema } from "../guildModule/types";
 
 export const PICTURES_IDENTIFIER = "cat_pictures";
 export const GUILD_DB_IDENTIFIER = "guilds";

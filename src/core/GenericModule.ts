@@ -1,5 +1,5 @@
 import { Client, Message, MessageEmbed } from "discord.js";
-import { OWN_DC_ID } from "./main";
+import { Globals } from "../globals_utils";
 
 export const PREFIX = "!"
 export const STATS_PREFIX = "stats";
@@ -33,7 +33,7 @@ export abstract class Module {
 	}
 
 	protected isCmdAllowed(cmd: string, message: Message): boolean {
-		return cmd.startsWith(PREFIX) && message.author.id != OWN_DC_ID;
+		return cmd.startsWith(PREFIX) && message.author.id != Globals.OWN_DC_ID;
 	}
 
 	protected getCmd(rawCmd: string): string {

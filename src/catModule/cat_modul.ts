@@ -1,254 +1,22 @@
-import { DbService, GenericDbService } from "./DbService";
-import Filesystem from "fs/promises";
+import { DbService, GenericDbService } from "../database/DbService";
 import { Client, Message, MessageEmbed } from "discord.js";
-import lowdb from "lowdb";
-import { Module, NotACommandError, PREFIX } from "./GenericModule";
-import { CATBOT_STATS_COUNT, CATBOT_STATS_IDENTIFIER, DbSchema, PICTURES_IDENTIFIER, SEND_CACHE_IDENTIFIER } from "./DbSchema";
-import { GuildManagementDbService } from "./GuildManagementModule";
-import { CmdActionAsync, Perm } from "./CmdPermUtils";
 
-async function asyncFilter(arr, predicate) {
-	const results = await Promise.all(arr.map(predicate));
+import { Module, NotACommandError, PREFIX } from "../core/GenericModule";
+import { GuildManagementDbService } from "../guildModule/guild_module";
+import { CatBotGuildStatistic, PictureCacheModel } from "./types";
+import { CatDbService, CatStatisticsDbService } from "./cat_service_db";
+import { Utils } from "../globals_utils";
+import { PicturesFileReader } from "./cat_fileReader";
+import { CmdActionAsync, Perm } from "../core/core_permissions";
 
-	return arr.filter((_v, index) => results[index]);
-}
 
-function removeTrailingSlash(path: string): string {
-	if (path.endsWith("/")) {
-		return path.slice(0, -1);
-	}
-	return path;
-}
-function removeOngoingSlash(path: string): string {
-	if (path.startsWith("/")) {
-		return path.slice(1, path.length);
-	}
-	return path;
-}
-
-export interface PictureCacheModel {
-	id: number,
-	catName?: string,
-	picturePath: string,
-}
-
-export interface SendPicturesModel {
-	guildId: string,
-	sendPictureId: number
-}
-
-export interface CatBotGuildStatistic {
-	guildId: string,
-	picturesViewed: number,
-}
-
-class CatDbService extends GenericDbService {
-
-	constructor(private db: lowdb.LowdbAsync<DbSchema>) {
-		super();
-	}
-
-	public loadPictures(): PictureCacheModel[] {
-		return this.db.get(PICTURES_IDENTIFIER).value() ?? [];
-	}
-
-	public refreshPicturePath(models: PictureCacheModel[]): void {
-		let pictures = this.db.get(PICTURES_IDENTIFIER);
-		pictures.remove(a => true).write(); // delete all
-		models.forEach(e => pictures.push(e).write());
-	}
-
-	public hasPictures(): boolean {
-		return this.loadPictures().length > 0;
-	}
-
-	public async addSendPicture(model: SendPicturesModel): Promise<void> {
-		await this.db.get(SEND_CACHE_IDENTIFIER).push(model).write();
-	}
-
-	public async deleteSendPictures(guildId: string) : Promise<void>{
-		await this.db.get(SEND_CACHE_IDENTIFIER)
-			.remove(a => a.guildId == guildId)
-			.write();
-	}
-
-	public alreadySentPictures(guildId: string): SendPicturesModel[] {
-		let content = this.db.get(SEND_CACHE_IDENTIFIER).value() ?? [];
-		return content.filter(a => a.guildId === guildId);
+class NoPicturesLeftError extends Error {
+	constructor(message?: string) {
+		super(message);
 	}
 }
 
-interface Statistics {
-	guildStats: CatBotGuildStatistic[],
-	overallPicturesViewed: number,
-}
-
-class CatStatisticsDbService extends GenericDbService {
-
-	constructor(private db: lowdb.LowdbAsync<DbSchema>) {
-		super();
-	}
-
-	public async incrementGuildCount(guildId: string): Promise<void> {
-		const guild = this.db
-			.get(CATBOT_STATS_IDENTIFIER)
-			.find({guildId: guildId});
-		if (guild.isEmpty().value()) {
-			this.createGuildInDb(guildId);
-		} else {
-			await guild.update('picturesViewed', count => count + 1).write();
-		}
-	}
-
-	public async createGuildInDb(guildId: string): Promise<void> {
-		const newGuildStat = {
-			guildId: guildId, 
-			picturesViewed: 1,
-		} as CatBotGuildStatistic;
-		await this.db
-			.get(CATBOT_STATS_IDENTIFIER)
-			.push(newGuildStat)
-			.write();
-	}
-
-	public async incrementOverallCount(): Promise<void> {
-		await this.db
-			.update(CATBOT_STATS_COUNT, c => c + 1)
-			.write()
-	}
-
-	public getStatistics(): Statistics {
-		const guildStats = this.db.get(CATBOT_STATS_IDENTIFIER).value();
-		const overallCount = this.db.get(CATBOT_STATS_COUNT).value();
-		return {guildStats: guildStats, overallPicturesViewed: overallCount};
-	}
-}
-
-class PicturesFileReader {
-	private dir: string;
-	private picturePaths: PictureCacheModel[];
-	private catDbService: CatDbService;
-
-	/**
-	 * Consider calling this.initCache afterwards. 
-	 * 
-	 * @param dbService 
-	 */
-	constructor(dbService: DbService) {
-		this.dir = "";
-		this.picturePaths = [];
-		this.catDbService = dbService.getCustomDbService(db => new CatDbService(db)) as CatDbService;
-	}
-
-	public async initCache(picturesPath: string | undefined){
-		if (!picturesPath) {
-			console.log("Warning: No PICTURE_DIR_PATH in .env specified. Using ./pictures/")
-		}
-		this.dir = removeTrailingSlash(picturesPath ?? "pictures/");
-		if (this.catDbService.hasPictures()) {
-			this.readCache();
-		} else {
-			await this.fillCache();
-		}
-	}
-
-	public async fillCache(): Promise<void> {
-		const pictureModels = (await this.readAndParseFiles()).sort();
-		this.catDbService.refreshPicturePath(pictureModels);
-		console.log("Filled cache with " + pictureModels.length + " paths")
-		this.picturePaths = pictureModels;
-	}
-
-	private readCache(): void {
-		this.picturePaths = this.catDbService.loadPictures();
-		console.log("Loaded " + this.picturePaths.length + " picture paths from database");
-	}
-
-	public async getRealtivePicPaths(): Promise<string[]> {
-		return await this.readAllFiles(this.dir);
-	}
-
-	public async getSubDirectorys(): Promise<string[]> {
-		return await this.readAllDirectory(this.dir);
-	}
-
-	private async readAndParseFiles(): Promise<PictureCacheModel[]> {
-		const files = await this.getRealtivePicPaths();
-		let cacheEntrys: PictureCacheModel[] = [];
-		for (let index = 0; index < files.length; index++) {
-			const singleFilePath = files[index];
-			const catname = await this.catNameFromFile(singleFilePath);
-			let pictureCacheEntry: PictureCacheModel = { id: index + 1, picturePath: singleFilePath};
-			if (catname) {
-				pictureCacheEntry.catName = catname;
-			}
-			cacheEntrys.push(pictureCacheEntry);
-			console.log("Found " + singleFilePath);
-		}
-		return cacheEntrys;
-	}
-
-	public async catNameFromFile(path: string): Promise<string | undefined> {
-		const possibleCatname = this.removeWorkDirFromPath(path).split("/")[1]; // first element is always empty; the second element could be the file itself or a dir
-			let catname: string | undefined = undefined;
-		if (await this.isDirectory(this.dir + "/" + possibleCatname)) {
-			catname = possibleCatname;
-		}
-		return catname;
-	}
-
-	private async isDirectory(fullPathFile: string): Promise<boolean> {
-		const fileStat = await Filesystem.stat(fullPathFile);
-		return fileStat.isDirectory();
-	}
-
-	private async readAllDirectory(path: string): Promise<string[]> {
-		return await this.getFiles(path, async f => await this.isDirectory(f));
-	}
-
-	private async readAllFiles(path: string): Promise<string[]> {
-		let dirs: string[] = await this.readAllDirectory(path)
-		let files: string[] = await this.getFiles(path, async f => !dirs.includes(f))
-		for (let index = dirs.length - 1; index >= 0; index--) {
-			const element = dirs[index];
-			files = files.concat(await this.readAllFiles(element));
-		}
-		return files;
-	}
-
-	/**
-	 * Hacky function to filter async through the listed files.
-	 * Lists all files in {@link this.dir} and filters them with the given method.
-	 * 
-	 * @param filter - The method to be filter all files with
-	 */
-	private async getFiles(dir: string, filter: (file:string) => Promise<boolean>): Promise<string[]> {
-		const files = await Filesystem.readdir(dir);
-		const filteredList: string[] = [];
-		for (let index = 0; index < files.length; index++) {
-			const element = dir + "/" + files[index];
-			if (await filter(element)) {
-				filteredList.push(element);
-			}
-		}
-		return filteredList;
-	}
-
-	public getPicturesPath(): PictureCacheModel[] {
-		return this.picturePaths;
-	}
-
-	public async getCatNames(): Promise<string[]> {
-		const dirs = await this.readAllDirectory(this.dir);
-		return dirs.map(d => this.removeWorkDirFromPath(d)).map(cats => removeOngoingSlash(cats));
-	}
-
-	private removeWorkDirFromPath(path: string): string {
-		return path.substr(this.dir.length, path.length) 
-	}
-}
-
-export class CatModule extends Module {
+export default class CatModule extends Module {
 	private catDbService: CatDbService;
 	private statsDbService: CatStatisticsDbService;
 
@@ -414,7 +182,7 @@ export class CatModule extends Module {
 		let items = this.picReader.getPicturesPath()
 			.filter(p => !alreadySentIds.includes(p.id));
 		if (catname) {
-			items = await asyncFilter(items, async (p: PictureCacheModel) => await this.picReader.catNameFromFile(p.picturePath));
+			items = await Utils.asyncFilter(items, async (p: PictureCacheModel) => await this.picReader.catNameFromFile(p.picturePath));
 		}
 		if (items.length == 0) {
 			if (catname) {
@@ -478,11 +246,5 @@ export class CatModule extends Module {
 			.setTitle("A list of cat names")
 			.setDescription(paths.join("\n"));
 		message.channel.send(embed);
-	}
-}
-
-class NoPicturesLeftError extends Error {
-	constructor(message?: string) {
-		super(message);
 	}
 }

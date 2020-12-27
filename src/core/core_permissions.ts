@@ -1,14 +1,10 @@
 import { Message } from "discord.js";
-import { CONFIG } from "./main";
+import { Utils } from "../globals_utils";
 
 export enum Perm {
     EVERYONE,
     GUILD_ADMIN,
     BOT_ADMIN,
-}
-
-export function isBotAdmin(discordUserId: string) {
-    return CONFIG.botAdminList?.includes(discordUserId) ?? false;
 }
 
 export class CmdActionAsync {
@@ -41,7 +37,7 @@ export class CmdActionAsync {
 
     public async invokeWithAutoPermissions(message: Message): Promise<void> {
         let perm = [Perm.EVERYONE];
-        if (isBotAdmin(message.author.id)) {
+        if (Utils.isBotAdmin(message.author.id)) {
             perm.push(Perm.BOT_ADMIN);
         }
         await this.invoke(message, perm);

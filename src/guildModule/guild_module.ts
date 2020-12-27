@@ -1,16 +1,10 @@
 import { Client, Collection, Guild, Message, MessageEmbed } from "discord.js";
 import Lowdb from "lowdb";
 import { stringify } from "querystring";
-import { DbSchema, GUILD_DB_IDENTIFIER } from "./DbSchema";
-import { DbService, GenericDbService } from "./DbService";
-import { Module } from "./GenericModule";
-
-export interface GuildSchema {
-    guildId: string,
-    guildName: string,
-    isActive: boolean,
-    lastAction: Date
-}
+import { DbSchema, GUILD_DB_IDENTIFIER } from "../database/DbSchema";
+import { DbService, GenericDbService } from "../database/DbService";
+import { Module } from "../core/GenericModule";
+import { GuildSchema } from "./types";
 
 export class GuildManagementDbService extends GenericDbService {
 
