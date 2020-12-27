@@ -38,6 +38,7 @@ export class CmdActionAsync {
             message.reply("Not enough permission to do this");
         }
     }
+
     public async invokeWithAutPermissoins(message: Message): Promise<void> {
         let perm = [Perm.EVERYONE];
         if (isBotAdmin(message.author.id)) {

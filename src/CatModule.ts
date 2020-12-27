@@ -141,8 +141,9 @@ export class CatModule extends Module {
 			.setColor('#0099ff')
 			.setTitle("Help Page Cat Module")
 			.setDescription('Smart module for sending cat pictures')
-			.addField(`${PREFIX}leaderboard | ${PREFIX}lb`, "Work in progress")
-			.addField(`${PREFIX}pic`, "Sends a picture of a cat");
+			.addField(`${PREFIX}leaderboard | ${PREFIX}lb`, "Shows the leaderboard of server which viewed the most cat pictures")
+			.addField(`${PREFIX}pic`, "Sends a picture of a cat"),
+			.addField(`${PREFIX}stats cat`, "Shows some statistics");
 	}
 
 	public moduleName(): string {
