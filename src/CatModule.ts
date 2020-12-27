@@ -7,6 +7,25 @@ import { CATBOT_STATS_COUNT, CATBOT_STATS_IDENTIFIER, DbSchema, PICTURES_IDENTIF
 import { GuildManagementDbService } from "./GuildManagementModule";
 import { CmdActionAsync, Perm } from "./CmdPermUtils";
 
+async function asyncFilter(arr, predicate) {
+	const results = await Promise.all(arr.map(predicate));
+
+	return arr.filter((_v, index) => results[index]);
+}
+
+function removeTrailingSlash(path: string): string {
+	if (path.endsWith("/")) {
+		return path.slice(0, -1);
+	}
+	return path;
+}
+function removeOngoingSlash(path: string): string {
+	if (path.startsWith("/")) {
+		return path.slice(1, path.length);
+	}
+	return path;
+}
+
 export interface PictureCacheModel {
 	id: number,
 	catName?: string,
@@ -43,12 +62,12 @@ class CatDbService extends GenericDbService {
 		return this.loadPictures().length > 0;
 	}
 
-	public addSendPicture(model: SendPicturesModel): void {
-		this.db.get(SEND_CACHE_IDENTIFIER).push(model).write();
+	public async addSendPicture(model: SendPicturesModel): Promise<void> {
+		await this.db.get(SEND_CACHE_IDENTIFIER).push(model).write();
 	}
 
-	public deleteSendPictures(guildId: string) {
-		this.db.get(SEND_CACHE_IDENTIFIER)
+	public async deleteSendPictures(guildId: string) : Promise<void>{
+		await this.db.get(SEND_CACHE_IDENTIFIER)
 			.remove(a => a.guildId == guildId)
 			.write();
 	}
@@ -70,30 +89,30 @@ class CatStatisticsDbService extends GenericDbService {
 		super();
 	}
 
-	public incrementGuildCount(guildId: string) {
+	public async incrementGuildCount(guildId: string): Promise<void> {
 		const guild = this.db
 			.get(CATBOT_STATS_IDENTIFIER)
 			.find({guildId: guildId});
 		if (guild.isEmpty().value()) {
 			this.createGuildInDb(guildId);
 		} else {
-			guild.update('picturesViewed', count => count + 1).write();
+			await guild.update('picturesViewed', count => count + 1).write();
 		}
 	}
 
-	public createGuildInDb(guildId: string) {
+	public async createGuildInDb(guildId: string): Promise<void> {
 		const newGuildStat = {
 			guildId: guildId, 
 			picturesViewed: 1,
 		} as CatBotGuildStatistic;
-		this.db
+		await this.db
 			.get(CATBOT_STATS_IDENTIFIER)
 			.push(newGuildStat)
 			.write();
 	}
 
-	public incrementOverallCount(): void {
-		this.db
+	public async incrementOverallCount(): Promise<void> {
+		await this.db
 			.update(CATBOT_STATS_COUNT, c => c + 1)
 			.write()
 	}
@@ -125,7 +144,7 @@ class PicturesFileReader {
 		if (!picturesPath) {
 			console.log("Warning: No PICTURE_DIR_PATH in .env specified. Using ./pictures/")
 		}
-		this.dir = this.removeTrailingSlash(picturesPath ?? "pictures/");
+		this.dir = removeTrailingSlash(picturesPath ?? "pictures/");
 		if (this.catDbService.hasPictures()) {
 			this.readCache();
 		} else {
@@ -133,21 +152,14 @@ class PicturesFileReader {
 		}
 	}
 
-	private removeTrailingSlash(path: string) {
-		if (path.endsWith("/")) {
-			return path.slice(0, -1);
-		}
-		return path;
-	}
-
 	public async fillCache(): Promise<void> {
-		const pictureModels = await this.readAndParseFiles();
+		const pictureModels = (await this.readAndParseFiles()).sort();
 		this.catDbService.refreshPicturePath(pictureModels);
 		console.log("Filled cache with " + pictureModels.length + " paths")
 		this.picturePaths = pictureModels;
 	}
 
-	public readCache(): void {
+	private readCache(): void {
 		this.picturePaths = this.catDbService.loadPictures();
 		console.log("Loaded " + this.picturePaths.length + " picture paths from database");
 	}
@@ -160,7 +172,7 @@ class PicturesFileReader {
 		return await this.readAllDirectory(this.dir);
 	}
 
-	public async readAndParseFiles(): Promise<PictureCacheModel[]> {
+	private async readAndParseFiles(): Promise<PictureCacheModel[]> {
 		const files = await this.getRealtivePicPaths();
 		let cacheEntrys: PictureCacheModel[] = [];
 		for (let index = 0; index < files.length; index++) {
@@ -176,14 +188,9 @@ class PicturesFileReader {
 		return cacheEntrys;
 	}
 
-	private async catNameFromFile(path: string): Promise<string | undefined> {
-		console.log(path.substr(this.dir.length, path.length));
-		const possibleCatname = 
-			path
-			.substr(this.dir.length, path.length) // remove path to workdir
-			.split("/")[1]; // first element is always empty; the second element could be the file itself or a dir
+	public async catNameFromFile(path: string): Promise<string | undefined> {
+		const possibleCatname = this.removeWorkDirFromPath(path).split("/")[1]; // first element is always empty; the second element could be the file itself or a dir
 			let catname: string | undefined = undefined;
-			console.log(possibleCatname);
 		if (await this.isDirectory(this.dir + "/" + possibleCatname)) {
 			catname = possibleCatname;
 		}
@@ -229,6 +236,15 @@ class PicturesFileReader {
 
 	public getPicturesPath(): PictureCacheModel[] {
 		return this.picturePaths;
+	}
+
+	public async getCatNames(): Promise<string[]> {
+		const dirs = await this.readAllDirectory(this.dir);
+		return dirs.map(d => this.removeWorkDirFromPath(d)).map(cats => removeOngoingSlash(cats));
+	}
+
+	private removeWorkDirFromPath(path: string): string {
+		return path.substr(this.dir.length, path.length) 
 	}
 }
 
@@ -277,9 +293,11 @@ export class CatModule extends Module {
 
 	public registerActions(discordClient: Client) {
 		discordClient.on('message', async (msg: Message) => {
-			const cmd = super.cmdFilter(msg.content);
-			const action = this.actionOnCmd(super.getCmd(msg.content));
-			await action.invokeWithAutoPermissions(msg);
+			try {
+				const cmd = super.cmdFilter(msg);
+				const action = this.actionOnCmd(cmd);
+				await action.invokeWithAutoPermissions(msg);
+			} catch {}
 		});
 	}
 
@@ -302,7 +320,29 @@ export class CatModule extends Module {
 				return new CmdActionAsync(message => this.sendAdminHelp(message))
 					.setNeededPermission([Perm.BOT_ADMIN]);
 			default:
-				return new CmdActionAsync(message => new Promise(() => ""));
+				return new CmdActionAsync(message => this.testAndSendPic(message, cmd));
+		}
+	}
+
+	private async filterCatName(cmd: string): Promise<string | undefined> {
+		if (cmd.startsWith("picture") || cmd.startsWith("p") || cmd.startsWith("pic")) {
+			const args = cmd.split(" ");
+			const catnames = (await this.picReader.getCatNames()).map(cats => cats.toLowerCase());
+			
+			if (catnames.includes(args[1].toLowerCase())) { // ex input would be: ["picture", "Gino"]
+				return args[1];
+			} else {
+				return undefined;
+			}
+		}
+	}
+
+	private async testAndSendPic(message: Message, cmd: string): Promise<void> {
+		const catname = await this.filterCatName(cmd);
+		if (catname) {
+			this.sendPic(message, catname);
+		} else {
+			message.channel.send("Cat not found");
 		}
 	}
 
@@ -326,42 +366,63 @@ export class CatModule extends Module {
 		message.channel.send(exampleEmbed);
 	}
 
-	private async sendPic(message: Message): Promise<void> {
-		const guildId = message.guild?.id ?? "0";
-		this.statsDbService.incrementGuildCount(guildId);
-		this.statsDbService.incrementOverallCount();
-		let alreadySentIds = this.catDbService
-			.alreadySentPictures(guildId)
-			.map(entry => entry.sendPictureId);
-		const randomPicId = this.generateRandomValidPictureId(alreadySentIds);
-		const randomPicObj = this.picReader.getPicturesPath().find(entry => entry.id == randomPicId);
+	private async sendPic(message: Message, catname?: string): Promise<void> {
 		if(this.picReader.getPicturesPath().length == 0) {
 			message.channel.send("No pictures available. Contact bot admin");
-		} else if (!randomPicObj) {
+			return;
+		}
+		const guildId = message.guild?.id ?? "0";
+		const getRandomPicObj = async () => {
+			let alreadySentIds = this.catDbService
+				.alreadySentPictures(guildId)
+				.map(entry => entry.sendPictureId);
+			const randomPicId = await this.generateRandomValidPictureId(alreadySentIds, catname);
+			return this.picReader.getPicturesPath().find(entry => entry.id == randomPicId);
+		};
+	
+		let randomPicObj: PictureCacheModel | undefined;
+		try {
+			randomPicObj = await getRandomPicObj();
+		} catch (e) {
 			message.channel.send({
 				content: "All photos were watched on this server! Starting again!"
 			});
-			this.resetCache(guildId);
-			this.sendPic(message);
+			await this.resetCache(guildId);
+			randomPicObj = await getRandomPicObj();
+		}
+		this.sendPictureMessage(message, randomPicObj); // dont wait here
+		this.statsDbService.incrementGuildCount(guildId);
+		this.statsDbService.incrementOverallCount();
+	}
+
+	private async sendPictureMessage(message: Message, pictureSchema: PictureCacheModel | undefined): Promise<void> {
+		if (!pictureSchema) {
+			console.log("BOT ERROR! Database is corrupt");
+			await message.channel.send("Bot error. Pls contact admin");
 		} else {
-			message.channel.send({
-				content: `A photo of ${randomPicObj.catName ?? "a cat"}`,
-				files: [randomPicObj?.picturePath]
+			await message.channel.send({
+				content: `A photo of ${pictureSchema.catName ?? "a cat"}`,
+				files: [pictureSchema?.picturePath]
 			});
-			this.catDbService.addSendPicture({guildId: guildId, sendPictureId: randomPicId})
+			await this.catDbService.addSendPicture({guildId: message.guild?.id ?? "0", sendPictureId: pictureSchema.id})
 		}
 	}
 
-	private resetCache(guildId: string): void {
-		console.log("Reset cache for guild: " + guildId)
-		this.catDbService.deleteSendPictures(guildId);
+	private async generateRandomValidPictureId(alreadySentIds: number[], catname?: string): Promise<number> {
+		let items = this.picReader.getPicturesPath()
+			.filter(p => !alreadySentIds.includes(p.id));
+		if (catname) {
+			items = await asyncFilter(items, async (p: PictureCacheModel) => await this.picReader.catNameFromFile(p.picturePath));
+		}
+		if (items.length == 0) {
+			throw new NoPicturesLeftError("No valid pictures left");
+		}
+		return items[Math.floor(Math.random() * items.length)].id;
 	}
 
-	private generateRandomValidPictureId(alreadySentIds: number[]) {
-		let items = this.picReader.getPicturesPath()
-			.map(p => p.id)
-			.filter(id => !alreadySentIds.includes(id));
-		return items[Math.floor(Math.random() * items.length)];
+	private async resetCache(guildId: string): Promise<void> {
+		console.log("Reset cache for guild: " + guildId)
+		await this.catDbService.deleteSendPictures(guildId);
 	}
 
 	public sendStats(message: Message): void {
@@ -401,5 +462,11 @@ export class CatModule extends Module {
 		const guildDbService = this.dbs.getCustomDbService(db => new GuildManagementDbService(db)) as GuildManagementDbService;
 		const guild = guildDbService.getGuild(guildStat.guildId);
 		return `${guild?.guildName ?? "<UNAVAILABLE>"} | ${guildStat.picturesViewed} Pictures Viewed`;
+	}
+}
+
+class NoPicturesLeftError extends Error {
+	constructor(message?: string) {
+		super(message);
 	}
 }

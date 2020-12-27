@@ -15,6 +15,7 @@ export const CONFIG = {
 	catPicturesPath: process.env.PICTURE_DIR_PATH
 }
 
+export const OWN_DC_ID = "791080285990682665";
 
 class CoreModule extends Module {
 
@@ -46,7 +47,10 @@ class CoreModule extends Module {
 	// Place for global actions which no module has to implement by its own
 	public registerActions(client: Client): void {
 		client.on('message', async (msg: Message) => {
-			const cmd = super.cmdFilter(msg.content);
+			let cmd: string | undefined = undefined;
+			try {
+				cmd = super.cmdFilter(msg);
+			} catch {}
 			if (cmd == "id") {
 				msg.reply("Your discord id: " + msg.author.id); 
 			}

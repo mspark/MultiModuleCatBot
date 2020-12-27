@@ -24,7 +24,6 @@ export class DbService {
         }
         if (!db.has('init').value()) {
             // potential to update tb here when init is present but false
-            console.log("Initialize Database to " + path)
             db.defaults(defaultSchema).write();
             db.update('init', i => true).write();
         }

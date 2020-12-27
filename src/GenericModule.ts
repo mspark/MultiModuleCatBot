@@ -1,36 +1,42 @@
 import { Client, Message, MessageEmbed } from "discord.js";
+import { OWN_DC_ID } from "./main";
 
 export const PREFIX = "!"
 export const STATS_PREFIX = "stats";
 
+export class NotACommandError extends Error {}
+
 export abstract class Module {
 
-	registerBasicCommands(client: Client): void {
+	public registerBasicCommands(client: Client): void {
 		client.on('message', async (msg: Message) => {
 			const statsCmd = `${STATS_PREFIX} ${this.moduleName()}`;
 			const helpCmd = `help ${this.moduleName()}`
-			const cmd = this.cmdFilter(msg.content);
-			if (cmd === statsCmd.trim()) {
-				this.sendStats(msg);
-			} else if (cmd === helpCmd.trim()) {
-				msg.reply(this.helpPage());
-			}
+			try {
+				const cmd = this.cmdFilter(msg);
+				if (cmd === statsCmd.trim()) {
+					this.sendStats(msg);
+				} else if (cmd === helpCmd.trim()) {
+					msg.reply(this.helpPage());
+				}
+			} catch {}
 		});
 	}
 
-	cmdFilter(cmd: string): string | undefined {
-		if (this.isCmdAllowed(cmd)) {
-			return this.getCmd(cmd);
+	protected cmdFilter(message: Message): string {
+		if (this.isCmdAllowed(message.content, message)) {
+			return this.getCmd(message.content);
 		} else {
-			return undefined;
+			/* DO NOT LOG ANYTHING HERE - PRIVACY*/
+			throw new NotACommandError();
 		}
 	}
 
-	isCmdAllowed(cmd: string): boolean {
-		return cmd.startsWith(PREFIX);
+	protected isCmdAllowed(cmd: string, message: Message): boolean {
+		return cmd.startsWith(PREFIX) && message.author.id != OWN_DC_ID;
 	}
 
-	getCmd(rawCmd: string): string {
+	protected getCmd(rawCmd: string): string {
 		return rawCmd.substring(PREFIX.length, rawCmd.length);
 	}
 

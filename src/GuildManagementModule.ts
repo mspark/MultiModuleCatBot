@@ -88,10 +88,12 @@ export class GuildManagementModule extends Module {
     
     registerActions(client: Client): void {
         client.on("message", (message: Message) => {
-            const cmd = super.cmdFilter(message.content);
-            if (cmd && message.guild)  {
-                this.customDbService.updateLastCommand(message.guild.id);
-            }
+            try {
+                const cmd = super.cmdFilter(message);
+                if (message.guild)  {
+                    this.customDbService.updateLastCommand(message.guild.id);
+                }
+            } catch {}
         });
         client.on("ready", () => {
             const guilds = client.guilds.cache;
