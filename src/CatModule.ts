@@ -125,13 +125,14 @@ class PicturesFileReader {
 		if (!picturesPath) {
 			console.log("Warning: No PICTURE_DIR_PATH in .env specified. Using ./pictures/")
 		}
-		this.dir = this.removeTrailingSlash(picturesPath ?? "./pictures/");
+		this.dir = this.removeTrailingSlash(picturesPath ?? "pictures/");
 		if (this.catDbService.hasPictures()) {
 			this.readCache();
 		} else {
 			await this.fillCache();
 		}
 	}
+
 	private removeTrailingSlash(path: string) {
 		if (path.endsWith("/")) {
 			return path.slice(0, -1);
@@ -140,7 +141,7 @@ class PicturesFileReader {
 	}
 
 	public async fillCache(): Promise<void> {
-		const pictureModels = await this.readAndParseFiles(this.dir);
+		const pictureModels = await this.readAndParseFiles();
 		this.catDbService.refreshPicturePath(pictureModels);
 		console.log("Filled cache with " + pictureModels.length + " paths")
 		this.picturePaths = pictureModels;
@@ -151,23 +152,28 @@ class PicturesFileReader {
 		console.log("Loaded " + this.picturePaths.length + " picture paths from database");
 	}
 
-	public async getCatPicturePaths(): Promise<string[]> {
-		return await this.readAllDirectory(this.dir);
+	public async getRealtivePicPaths(): Promise<string[]> {
+		return await this.readAllFiles(this.dir);
 	}
 
 	public async getSubDirectorys(): Promise<string[]> {
 		return await this.readAllDirectory(this.dir);
 	}
 
-	public async readAndParseFiles(path: string): Promise<PictureCacheModel[]> {
-		const files = await this.readAllFiles(this.dir);
+	public async readAndParseFiles(): Promise<PictureCacheModel[]> {
+		const files = await this.getRealtivePicPaths();
 		let cacheEntrys: PictureCacheModel[] = [];
 		for (let index = 0; index < files.length; index++) {
-			const element = files[index];
-			const catname = element.split("/")[0];
-			const pictureCacheEntry = { id: index + 1, catName: catname, picturePath: path + element} as PictureCacheModel;
+			const singleFile = files[index];
+			const possibleCatname = singleFile.split("/")[1]; // first one should be the root path, second one could be the file itself
+			let pictureCacheEntry: PictureCacheModel;
+			if (this.isDirectory(possibleCatname)) {
+				pictureCacheEntry = { id: index + 1, catName: possibleCatname, picturePath: singleFile};
+			} else {
+				pictureCacheEntry = { id: index + 1, picturePath: singleFile};
+			}
 			cacheEntrys.push(pictureCacheEntry);
-			console.log("Found " + path + element);
+			console.log("Found " + singleFile);
 		}
 		return cacheEntrys;
 	}
@@ -312,7 +318,8 @@ export class CatModule extends Module {
 		const guildId = message.guild?.id ?? "0";
 		this.statsDbService.incrementGuildCount(guildId);
 		this.statsDbService.incrementOverallCount();
-		let alreadySentIds = this.catDbService.alreadySentPictures(guildId)
+		let alreadySentIds = this.catDbService
+			.alreadySentPictures(guildId)
 			.map(entry => entry.sendPictureId);
 		const randomPicId = this.generateRandomValidPictureId(alreadySentIds);
 		const randomPicObj = this.picReader.getPicturesPath().find(entry => entry.id == randomPicId);
