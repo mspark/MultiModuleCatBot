@@ -39,7 +39,7 @@ export class CmdActionAsync {
         }
     }
 
-    public async invokeWithAutPermissoins(message: Message): Promise<void> {
+    public async invokeWithAutoPermissions(message: Message): Promise<void> {
         let perm = [Perm.EVERYONE];
         if (isBotAdmin(message.author.id)) {
             perm.push(Perm.BOT_ADMIN);
