@@ -372,17 +372,17 @@ export class CatModule extends Module {
 			return;
 		}
 		const guildId = message.guild?.id ?? "0";
-		const getRandomPicObj = async () => {
+		const getRandomPicObj = async (cat?: string) => {
 			let alreadySentIds = this.catDbService
 				.alreadySentPictures(guildId)
 				.map(entry => entry.sendPictureId);
-			const randomPicId = await this.generateRandomValidPictureId(alreadySentIds, catname);
+			const randomPicId = await this.generateRandomValidPictureId(alreadySentIds, cat);
 			return this.picReader.getPicturesPath().find(entry => entry.id == randomPicId);
 		};
 	
 		let randomPicObj: PictureCacheModel | undefined;
 		try {
-			randomPicObj = await getRandomPicObj();
+			randomPicObj = await getRandomPicObj(catname);
 		} catch (e) {
 			message.channel.send({
 				content: "All photos were watched on this server! Starting again!"
@@ -415,7 +415,12 @@ export class CatModule extends Module {
 			items = await asyncFilter(items, async (p: PictureCacheModel) => await this.picReader.catNameFromFile(p.picturePath));
 		}
 		if (items.length == 0) {
-			throw new NoPicturesLeftError("No valid pictures left");
+			if (catname) {
+				// retry without specific cat - this avoids reset database when a cat is specified
+				return this.generateRandomValidPictureId(alreadySentIds); 
+			} else {
+				throw new NoPicturesLeftError("No valid pictures left");
+			}
 		}
 		return items[Math.floor(Math.random() * items.length)].id;
 	}
