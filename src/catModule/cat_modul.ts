@@ -50,7 +50,7 @@ export default class CatModule extends Module {
 		const embed= new MessageEmbed()
 			.setColor('#450000')
 			.setTitle("Help Page for Personal Cat Pictures!")
-			.addField(`${P}reset`, `Reset already send pictures cache`)
+			.addField(`${P}reset (all)`, `Resets already send pictures (for this guild)`)
 			.addField(`${P}reload`, `Renew picture path-cache with data from filesystem\n *Aliases: \` ${P}r \`*`)
 			.addField(`${P}list`, "List loaded pictures");
 		return new Promise(() => message.channel.send(embed));
@@ -77,6 +77,9 @@ export default class CatModule extends Module {
 					.setNeededPermission([Perm.BOT_ADMIN]);
 			case "reset":
 				return new CmdActionAsync(message => new Promise( () => this.resetCache(message.guild?.id ?? "0")))
+					.setNeededPermission([Perm.BOT_ADMIN]);
+			case "reset all":
+				return new CmdActionAsync(message => this.resetCacheForAll(message))
 					.setNeededPermission([Perm.BOT_ADMIN]);
 			case "list": case "l":
 				return new CmdActionAsync(message => this.list(message))
@@ -198,6 +201,12 @@ export default class CatModule extends Module {
 	private async resetCache(guildId: string): Promise<void> {
 		console.log("Reset cache for guild: " + guildId)
 		await this.catDbService.deleteSendPictures(guildId);
+	}
+
+	private async resetCacheForAll(msg: Message): Promise<void> {
+		console.log("Reset cache for every guild");
+		await this.catDbService.deleteSendPictures();
+		msg.reply("Done.");
 	}
 
 	public sendStats(message: Message): void {

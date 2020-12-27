@@ -27,10 +27,14 @@ export class CatDbService extends GenericDbService {
 		await this.db.get(SEND_CACHE_IDENTIFIER).push(model).write();
 	}
 
-	public async deleteSendPictures(guildId: string) : Promise<void>{
-		await this.db.get(SEND_CACHE_IDENTIFIER)
-			.remove(a => a.guildId == guildId)
-			.write();
+	public async deleteSendPictures(guildId?: string): Promise<void> {
+		const dbs = this.db.get(SEND_CACHE_IDENTIFIER);
+		if (guildId) {
+			dbs.remove(a => a.guildId == guildId);
+		} else {
+			dbs.remove(a => true);
+		}
+		await dbs.write();
 	}
 
 	public alreadySentPictures(guildId: string): SendPicturesModel[] {
