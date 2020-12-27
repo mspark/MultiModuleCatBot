@@ -208,20 +208,22 @@ class PicturesFileReader {
 		}
 		return filteredList;
 	}
+
+	public getPicturesPath(): PictureCacheModel[] {
+		return this.picturePaths;
+	}
 }
 
 export class CatModule extends Module {
 	private catDbService: CatDbService;
-	private picturePaths: PictureCacheModel[];
 	private statsDbService: CatStatisticsDbService;
 
 	constructor(private dbs: DbService, private picReader: PicturesFileReader) {
 		super();
-		this.picturePaths = [];
 		this.catDbService = dbs.getCustomDbService(db => new CatDbService(db)) as CatDbService;
 		this.statsDbService = dbs.getCustomDbService(db => new CatStatisticsDbService(db)) as CatStatisticsDbService;
 	}
-	
+
 	public static async newInstance(picturesPath: string | undefined, dbService: DbService): Promise<CatModule> {
 		const reader = new PicturesFileReader(dbService);
 		await reader.initCache(picturesPath);
@@ -259,7 +261,7 @@ export class CatModule extends Module {
 		discordClient.on('message', async (msg: Message) => {
 			const cmd = super.cmdFilter(msg.content);
 			const action = this.actionOnCmd(super.getCmd(msg.content));
-			await action.invokeWithAutPermissoins(msg);
+			await action.invokeWithAutoPermissions(msg);
 		});
 	}
 
@@ -279,7 +281,8 @@ export class CatModule extends Module {
 			case "leaderboard": case "lb":
 				return new CmdActionAsync(message => new Promise(() => this.sendLeaderboard(message)));
 			case "help cat admin": 
-				return new CmdActionAsync(message => this.sendAdminHelp(message)).setNeededPermission([Perm.BOT_ADMIN]);
+				return new CmdActionAsync(message => this.sendAdminHelp(message))
+					.setNeededPermission([Perm.BOT_ADMIN]);
 			default:
 				return new CmdActionAsync(message => new Promise(() => ""));
 		}
@@ -289,7 +292,7 @@ export class CatModule extends Module {
 		console.log("Reload invoked from " + message.author);
 		message.reply("Reload...");
 		await this.picReader.fillCache();
-		message.reply("Done. Found " + this.picturePaths.length + " files");
+		message.reply("Done. Found " + this.picReader.getPicturesPath().length + " files");
 	}
 
 	private async list(message: Message): Promise<void> {
@@ -297,9 +300,10 @@ export class CatModule extends Module {
 			.setColor('#450000')
 			.setTitle("Loaded Pictures")
 			.setDescription('Loaded cat pictures from filesystem.');
-		const paths = this.picturePaths
+		const paths = this.picReader
+			.getPicturesPath()
 			.map(p => p.picturePath)
-			.join("\n");
+			.join("\n") || "Nothing";
 		exampleEmbed.addField('All', paths, true);
 		message.channel.send(exampleEmbed);
 	}
@@ -311,8 +315,10 @@ export class CatModule extends Module {
 		let alreadySentIds = this.catDbService.alreadySentPictures(guildId)
 			.map(entry => entry.sendPictureId);
 		const randomPicId = this.generateRandomValidPictureId(alreadySentIds);
-		const randomPicObj = this.picturePaths.find(entry => entry.id == randomPicId);
-		if (!randomPicObj) {
+		const randomPicObj = this.picReader.getPicturesPath().find(entry => entry.id == randomPicId);
+		if(this.picReader.getPicturesPath().length == 0) {
+			message.channel.send("No pictures available. Contact bot admin");
+		} else if (!randomPicObj) {
 			message.channel.send({
 				content: "All photos were watched on this server! Starting again!"
 			});
@@ -333,7 +339,7 @@ export class CatModule extends Module {
 	}
 
 	private generateRandomValidPictureId(alreadySentIds: number[]) {
-		let items = this.picturePaths
+		let items = this.picReader.getPicturesPath()
 			.map(p => p.id)
 			.filter(id => !alreadySentIds.includes(id));
 		return items[Math.floor(Math.random() * items.length)];
@@ -345,8 +351,7 @@ export class CatModule extends Module {
 		const embed =  new MessageEmbed()
 			.setColor('#0099ff')
 			.setTitle("Cat module statistics")
-			.setDescription(`😻 Total cat pictures send: ${stats.overallPicturesViewed} \n 
-				🐈 Cat pictures send on this server: ${guildStats?.picturesViewed}`);
+			.setDescription(`😻 Total cat pictures send: ${stats.overallPicturesViewed} \n🐈 Cat pictures send on this server: ${guildStats?.picturesViewed}`);
 		message.channel.send(embed);
 	}
 

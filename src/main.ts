@@ -1,9 +1,6 @@
 import { Client, Message, MessageEmbed } from "discord.js";
-import { isElementAccessChain } from "typescript";
 import { getModuleList } from "./ModuleList";
-import { CatModule } from "./CatModule";
-import { DbService } from "./DbService";
-import { Module, PREFIX, STATS_PREFIX } from "./GenericModule";
+import { Module } from "./GenericModule";
 require('dotenv').config();
 
 export interface Config {
