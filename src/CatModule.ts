@@ -104,24 +104,20 @@ class CatStatisticsDbService extends GenericDbService {
 	}
 }
 
-export class CatModule extends Module {
-	private catDbService: CatDbService;
-	private picturePaths: PictureCacheModel[];
+class PicturesFileReader {
 	private dir: string;
-	private statsDbService: CatStatisticsDbService;
+	private picturePaths: PictureCacheModel[];
+	private catDbService: CatDbService;
 
-	constructor(private dbs: DbService) {
-		super();
-		this.picturePaths = [];
+	/**
+	 * Consider calling this.initCache afterwards. 
+	 * 
+	 * @param dbService 
+	 */
+	constructor(dbService: DbService) {
 		this.dir = "";
-		this.catDbService = dbs.getCustomDbService(db => new CatDbService(db)) as CatDbService;
-		this.statsDbService = dbs.getCustomDbService(db => new CatStatisticsDbService(db)) as CatStatisticsDbService;
-	}
-	
-	public static async newInstance(picturesPath: string | undefined, dbService: DbService): Promise<CatModule> {
-		const catbot = new CatModule(dbService);
-		await catbot.initCache(picturesPath);
-		return catbot;
+		this.picturePaths = [];
+		this.catDbService = dbService.getCustomDbService(db => new CatDbService(db)) as CatDbService;
 	}
 
 	public async initCache(picturesPath: string | undefined){
@@ -134,6 +130,53 @@ export class CatModule extends Module {
 		} else {
 			await this.fillCache(this.dir);
 		}
+	}
+	public async fillCache(filePath: string): Promise<void> {
+		const pictureModels = await this.readFiles(filePath);
+		this.catDbService.refreshPicturePath(pictureModels);
+		console.log("Filled cache with " + pictureModels.length + " paths")
+		this.picturePaths = pictureModels;
+	}
+
+	public async refillCache(): Promise<void> {
+		await this.fillCache(this.dir);
+	}
+
+	public readCache(): void {
+		this.picturePaths = this.catDbService.loadPictures();
+		console.log("Loaded " + this.picturePaths.length + " picture paths from database");
+	}
+
+	public async readFiles(path: string): Promise<PictureCacheModel[]> {
+		let cacheEntrys: PictureCacheModel[] = [];
+		let files = await Filesystem.readdir(path);
+		for (let index = 0; index < files.length; index++) {
+			const element = files[index];
+			const pictureCacheEntry = { id: index + 1, picturePath: path + element} as PictureCacheModel;
+			cacheEntrys.push(pictureCacheEntry);
+			console.log("Found " + path + element);
+		}
+		return cacheEntrys;
+	}
+}
+
+export class CatModule extends Module {
+	private catDbService: CatDbService;
+	private picturePaths: PictureCacheModel[];
+	private statsDbService: CatStatisticsDbService;
+
+	constructor(private dbs: DbService, private picReader: PicturesFileReader) {
+		super();
+		this.picturePaths = [];
+		this.catDbService = dbs.getCustomDbService(db => new CatDbService(db)) as CatDbService;
+		this.statsDbService = dbs.getCustomDbService(db => new CatStatisticsDbService(db)) as CatStatisticsDbService;
+	}
+	
+	public static async newInstance(picturesPath: string | undefined, dbService: DbService): Promise<CatModule> {
+		const reader = new PicturesFileReader(dbService);
+		await reader.initCache(picturesPath);
+		const catbot = new CatModule(dbService, reader);
+		return catbot;
 	}
 
 	public helpPage(): MessageEmbed {
@@ -148,30 +191,6 @@ export class CatModule extends Module {
 
 	public moduleName(): string {
 		return "cat";
-	}
-
-	private async fillCache(filePath: string): Promise<void> {
-		const pictureModels = await this.readFiles(filePath);
-		this.catDbService.refreshPicturePath(pictureModels);
-		console.log("Filled cache with " + pictureModels.length + " paths")
-		this.picturePaths = pictureModels;
-	}
-
-	private readCache(): void {
-		this.picturePaths = this.catDbService.loadPictures();
-		console.log("Loaded " + this.picturePaths.length + " picture paths from database");
-	}
-
-	private async readFiles(path: string): Promise<PictureCacheModel[]> {
-		let cacheEntrys: PictureCacheModel[] = [];
-		let files = await Filesystem.readdir(path);
-		for (let index = 0; index < files.length; index++) {
-			const element = files[index];
-			const pictureCacheEntry = { id: index + 1, picturePath: path + element} as PictureCacheModel;
-			cacheEntrys.push(pictureCacheEntry);
-			console.log("Found " + path + element);
-		}
-		return cacheEntrys;
 	}
 
 	public registerActions(discordClient: Client) {
@@ -207,7 +226,7 @@ export class CatModule extends Module {
 	private async reload(message: Message): Promise<void> {
 		console.log("Reload invoked from " + message.author);
 		message.reply("Reload...");
-		await this.fillCache(this.dir);
+		await this.picReader.refillCache();
 		message.reply("Done. Found " + this.picturePaths.length + " files");
 	}
 
