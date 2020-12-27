@@ -2,7 +2,7 @@ import { DbService, GenericDbService } from "./DbService";
 import Filesystem from "fs/promises";
 import { Client, Message, MessageEmbed } from "discord.js";
 import lowdb from "lowdb";
-import { Module, PREFIX } from "./GenericModule";
+import { Module, NotACommandError, PREFIX } from "./GenericModule";
 import { CATBOT_STATS_COUNT, CATBOT_STATS_IDENTIFIER, DbSchema, PICTURES_IDENTIFIER, SEND_CACHE_IDENTIFIER } from "./DbSchema";
 import { GuildManagementDbService } from "./GuildManagementModule";
 import { CmdActionAsync, Perm } from "./CmdPermUtils";
@@ -272,8 +272,9 @@ export class CatModule extends Module {
 			.setTitle("🐈Help Page for Personal Cat Pictures!🐈")
 			.setDescription(`Smart module for sending cat pictures. For admin help page call \`${P}help cat admin\``)
 			.addField(`${P}picture`, `Sends a picture of a cat\n*Aliases: \` ${P}pic | ${P}p \`*`)
-			.addField(`${P}leaderboard`, `Shows the leaderboard of server which viewed the most cat pictures\n*Aliases: \` ${P}lb \`*`)
-			.addField(`${P}stats cat`, "Shows some statistics");
+			.addField(`${P}leaderboard`, `Shows the leaderboard of the three servers which viewed the most cat pictures\n*Aliases: \` ${P}lb \`*`)
+			.addField(`${P}stats cat`, "Shows some statistics")
+			.addField(`${P}cat list`, "List cat names");
 	}
 
 	private sendAdminHelp(message: Message): Promise<void> {
@@ -282,7 +283,7 @@ export class CatModule extends Module {
 			.setColor('#450000')
 			.setTitle("Help Page for Personal Cat Pictures!")
 			.addField(`${P}reset`, `Reset already send pictures cache`)
-			.addField(`${P}reload`, `Renew picture path cache with files from filesystem\n *Aliases: \` ${P}r \`*`)
+			.addField(`${P}reload`, `Renew picture path-cache with data from filesystem\n *Aliases: \` ${P}r \`*`)
 			.addField(`${P}list`, "List loaded pictures");
 		return new Promise(() => message.channel.send(embed));
 	}
@@ -319,11 +320,12 @@ export class CatModule extends Module {
 			case "help cat admin": 
 				return new CmdActionAsync(message => this.sendAdminHelp(message))
 					.setNeededPermission([Perm.BOT_ADMIN]);
+			case "cat list":
+				return new CmdActionAsync(message => this.sendCatList(message));
 			default:
 				return new CmdActionAsync(message => this.testAndSendPic(message, cmd));
 		}
 	}
-
 	private async filterCatName(cmd: string): Promise<string | undefined> {
 		if (cmd.startsWith("picture") || cmd.startsWith("p") || cmd.startsWith("pic")) {
 			const args = cmd.split(" ");
@@ -334,7 +336,7 @@ export class CatModule extends Module {
 			} else {
 				return undefined;
 			}
-		}
+		} throw new NotACommandError();
 	}
 
 	private async testAndSendPic(message: Message, cmd: string): Promise<void> {
@@ -467,6 +469,15 @@ export class CatModule extends Module {
 		const guildDbService = this.dbs.getCustomDbService(db => new GuildManagementDbService(db)) as GuildManagementDbService;
 		const guild = guildDbService.getGuild(guildStat.guildId);
 		return `${guild?.guildName ?? "<UNAVAILABLE>"} | ${guildStat.picturesViewed} Pictures Viewed`;
+	}
+
+	private async sendCatList(message: Message): Promise<void> {
+		const paths = await this.picReader.getCatNames();
+		const embed = new MessageEmbed()
+			.setColor('#0099ff')
+			.setTitle("A list of cat names")
+			.setDescription(paths.join("\n"));
+		message.channel.send(embed);
 	}
 }
 
