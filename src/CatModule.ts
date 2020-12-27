@@ -9,6 +9,7 @@ import { CmdActionAsync, Perm } from "./CmdPermUtils";
 
 export interface PictureCacheModel {
 	id: number,
+	catName?: string,
 	picturePath: string,
 }
 
@@ -124,22 +125,26 @@ class PicturesFileReader {
 		if (!picturesPath) {
 			console.log("Warning: No PICTURE_DIR_PATH in .env specified. Using ./pictures/")
 		}
-		this.dir = picturesPath ?? "./pictures/"
+		this.dir = this.removeTrailingSlash(picturesPath ?? "pictures/");
 		if (this.catDbService.hasPictures()) {
 			this.readCache();
 		} else {
-			await this.fillCache(this.dir);
+			await this.fillCache();
 		}
 	}
-	public async fillCache(filePath: string): Promise<void> {
-		const pictureModels = await this.readFiles(filePath);
+
+	private removeTrailingSlash(path: string) {
+		if (path.endsWith("/")) {
+			return path.slice(0, -1);
+		}
+		return path;
+	}
+
+	public async fillCache(): Promise<void> {
+		const pictureModels = await this.readAndParseFiles();
 		this.catDbService.refreshPicturePath(pictureModels);
 		console.log("Filled cache with " + pictureModels.length + " paths")
 		this.picturePaths = pictureModels;
-	}
-
-	public async refillCache(): Promise<void> {
-		await this.fillCache(this.dir);
 	}
 
 	public readCache(): void {
@@ -147,16 +152,67 @@ class PicturesFileReader {
 		console.log("Loaded " + this.picturePaths.length + " picture paths from database");
 	}
 
-	public async readFiles(path: string): Promise<PictureCacheModel[]> {
+	public async getRealtivePicPaths(): Promise<string[]> {
+		return await this.readAllFiles(this.dir);
+	}
+
+	public async getSubDirectorys(): Promise<string[]> {
+		return await this.readAllDirectory(this.dir);
+	}
+
+	public async readAndParseFiles(): Promise<PictureCacheModel[]> {
+		const files = await this.getRealtivePicPaths();
 		let cacheEntrys: PictureCacheModel[] = [];
-		let files = await Filesystem.readdir(path);
 		for (let index = 0; index < files.length; index++) {
-			const element = files[index];
-			const pictureCacheEntry = { id: index + 1, picturePath: path + element} as PictureCacheModel;
+			const singleFile = files[index];
+			const possibleCatname = singleFile.split("/")[1]; // first one should be the root path, second one could be the file itself
+			let pictureCacheEntry: PictureCacheModel;
+			if (this.isDirectory(possibleCatname)) {
+				pictureCacheEntry = { id: index + 1, catName: possibleCatname, picturePath: singleFile};
+			} else {
+				pictureCacheEntry = { id: index + 1, picturePath: singleFile};
+			}
 			cacheEntrys.push(pictureCacheEntry);
-			console.log("Found " + path + element);
+			console.log("Found " + singleFile);
 		}
 		return cacheEntrys;
+	}
+
+	private async isDirectory(fullPathFile: string): Promise<boolean> {
+		const fileStat = await Filesystem.stat(fullPathFile);
+		return fileStat.isDirectory();
+	}
+
+	private async readAllDirectory(path: string): Promise<string[]> {
+		return await this.getFiles(path, async f => await this.isDirectory(f));
+	}
+
+	private async readAllFiles(path: string): Promise<string[]> {
+		let dirs: string[] = await this.readAllDirectory(path)
+		let files: string[] = await this.getFiles(path, async f => !dirs.includes(f))
+		for (let index = dirs.length - 1; index >= 0; index--) {
+			const element = dirs[index];
+			files = files.concat(await this.readAllFiles(element));
+		}
+		return files;
+	}
+
+	/**
+	 * Hacky function to filter async through the listed files.
+	 * Lists all files in {@link this.dir} and filters them with the given method.
+	 * 
+	 * @param filter - The method to be filter all files with
+	 */
+	private async getFiles(dir: string, filter: (file:string) => Promise<boolean>): Promise<string[]> {
+		const files = await Filesystem.readdir(dir);
+		const filteredList: string[] = [];
+		for (let index = 0; index < files.length; index++) {
+			const element = dir + "/" + files[index];
+			if (await filter(element)) {
+				filteredList.push(element);
+			}
+		}
+		return filteredList;
 	}
 
 	public getPicturesPath(): PictureCacheModel[] {
@@ -241,7 +297,7 @@ export class CatModule extends Module {
 	private async reload(message: Message): Promise<void> {
 		console.log("Reload invoked from " + message.author);
 		message.reply("Reload...");
-		await this.picReader.refillCache();
+		await this.picReader.fillCache();
 		message.reply("Done. Found " + this.picReader.getPicturesPath().length + " files");
 	}
 
@@ -262,13 +318,14 @@ export class CatModule extends Module {
 		const guildId = message.guild?.id ?? "0";
 		this.statsDbService.incrementGuildCount(guildId);
 		this.statsDbService.incrementOverallCount();
-		let alreadySentIds = this.catDbService.alreadySentPictures(guildId)
+		let alreadySentIds = this.catDbService
+			.alreadySentPictures(guildId)
 			.map(entry => entry.sendPictureId);
 		const randomPicId = this.generateRandomValidPictureId(alreadySentIds);
-		const randomPicPath = this.picReader.getPicturesPath().find(entry => entry.id == randomPicId)?.picturePath;
+		const randomPicObj = this.picReader.getPicturesPath().find(entry => entry.id == randomPicId);
 		if(this.picReader.getPicturesPath().length == 0) {
 			message.channel.send("No pictures available. Contact bot admin");
-		} else if (!randomPicPath) {
+		} else if (!randomPicObj) {
 			message.channel.send({
 				content: "All photos were watched on this server! Starting again!"
 			});
@@ -276,7 +333,8 @@ export class CatModule extends Module {
 			this.sendPic(message);
 		} else {
 			message.channel.send({
-				files: [randomPicPath]
+				content: `A photo of ${randomPicObj.catName}`,
+				files: [randomPicObj?.picturePath]
 			});
 			this.catDbService.addSendPicture({guildId: guildId, sendPictureId: randomPicId})
 		}
