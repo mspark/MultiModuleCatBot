@@ -271,10 +271,10 @@ export class CatModule extends Module {
 			.setColor('#0099ff')
 			.setTitle("🐈Help Page for Personal Cat Pictures!🐈")
 			.setDescription(`Smart module for sending cat pictures. For admin help page call \`${P}help cat admin\``)
-			.addField(`${P}picture`, `Sends a picture of a cat\n*Aliases: \` ${P}pic | ${P}p \`*`)
+			.addField(`${P}cat`, `Sends a picture of a cat. You can specify the cat you want to see. \n*Aliases: \` ${P}c | ${P}p \`*`)
+			.addField(`${P}cat list`, "List cat names")
 			.addField(`${P}leaderboard`, `Shows the leaderboard of the three servers which viewed the most cat pictures\n*Aliases: \` ${P}lb \`*`)
-			.addField(`${P}stats cat`, "Shows some statistics")
-			.addField(`${P}cat list`, "List cat names");
+			.addField(`${P}stats cat`, "Shows some statistics");
 	}
 
 	private sendAdminHelp(message: Message): Promise<void> {
@@ -313,7 +313,7 @@ export class CatModule extends Module {
 			case "list": case "l":
 				return new CmdActionAsync(message => this.list(message))
 					.setNeededPermission([Perm.BOT_ADMIN]);
-			case "picture": case "pic": case "p":
+			case "cat": case "c": case "p":
 				return new CmdActionAsync(message => this.sendPic(message));
 			case "leaderboard": case "lb":
 				return new CmdActionAsync(message => new Promise(() => this.sendLeaderboard(message)));
@@ -327,7 +327,7 @@ export class CatModule extends Module {
 		}
 	}
 	private async filterCatName(cmd: string): Promise<string | undefined> {
-		if (cmd.startsWith("picture") || cmd.startsWith("p") || cmd.startsWith("pic")) {
+		if (cmd.startsWith("cat") || cmd.startsWith("c") || cmd.startsWith("pic")) {
 			const args = cmd.split(" ");
 			const catnames = (await this.picReader.getCatNames()).map(cats => cats.toLowerCase());
 			
