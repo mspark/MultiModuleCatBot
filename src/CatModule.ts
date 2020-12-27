@@ -139,10 +139,10 @@ export class CatModule extends Module {
 	public helpPage(): MessageEmbed {
 		return new MessageEmbed()
 			.setColor('#0099ff')
-			.setTitle("Help Page Cat Module")
-			.setDescription('Smart module for sending cat pictures')
+			.setTitle("Help Page for Personal Cat Pictures!")
+			.setDescription(`Smart module for sending cat pictures. For admin help page call ${PREFIX}help cat admin`)
 			.addField(`${PREFIX}leaderboard | ${PREFIX}lb`, "Shows the leaderboard of server which viewed the most cat pictures")
-			.addField(`${PREFIX}pic`, "Sends a picture of a cat")
+			.addField(`${PREFIX}pic | ${PREFIX}p`, "Sends a picture of a cat")
 			.addField(`${PREFIX}stats cat`, "Shows some statistics");
 	}
 
@@ -197,6 +197,8 @@ export class CatModule extends Module {
 				return new CmdActionAsync(message => this.sendPic(message));
 			case "leaderboard": case "lb":
 				return new CmdActionAsync(message => new Promise(() => this.sendLeaderboard(message)));
+			case "help cat admin": 
+				return new CmdActionAsync(message => this.sendAdminHelp(message)).setNeededPermission([Perm.BOT_ADMIN]);
 			default:
 				return new CmdActionAsync(message => new Promise(() => ""));
 		}
@@ -293,5 +295,15 @@ export class CatModule extends Module {
 		const guildDbService = this.dbs.getCustomDbService(db => new GuildManagementDbService(db)) as GuildManagementDbService;
 		const guild = guildDbService.getGuild(guildStat.guildId);
 		return `${guild?.guildName ?? "<UNAVAILABLE>"} | ${guildStat.picturesViewed} Pictures Viewed`;
+	}
+
+	private sendAdminHelp(message: Message): Promise<void> {
+		const embed= new MessageEmbed()
+			.setColor('#450000')
+			.setTitle("Help Page for Personal Cat Pictures!")
+			.addField(`${PREFIX}reset | ${PREFIX}lb`, "Reset already send pictures cache")
+			.addField(`${PREFIX}reload | ${PREFIX}p`, "Renew picture path cache with files from filesystem")
+			.addField(`${PREFIX}list`, "List loaded pictures");
+		return new Promise(() => message.channel.send(embed));
 	}
 }

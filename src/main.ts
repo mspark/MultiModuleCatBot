@@ -38,7 +38,7 @@ class CoreModule extends Module {
 		return new MessageEmbed()
 			.setColor('#0099ff')
 			.setTitle("Help Page")
-			.setDescription('Welcome to this multi module bot. Please call the respective help page of each module via \`!help <module>\`')
+			.setDescription('Welcome to this multi module bot. Please call the respective help page of the desired module via \`!help <module>\`')
 			.addField('Available Modules', this.moduleNamesConcat(), true);
 	}
 
@@ -54,7 +54,7 @@ class CoreModule extends Module {
 				msg.reply("Your discord id: " + msg.author.id); 
 			}
 			if (cmd == "invite") {
-				msg.channel.send("https://discord.com/oauth2/authorize?client_id=791080285990682665&scope=bot");
+				msg.channel.send("https://discord.com/oauth2/authorize?client_id=791080285990682665&scope=bot&permissions=126016");
 			}
 		});
 	}
