@@ -180,13 +180,25 @@ export class CatModule extends Module {
 	}
 
 	public helpPage(): MessageEmbed {
+		const P = PREFIX; // just shorter
 		return new MessageEmbed()
 			.setColor('#0099ff')
+			.setTitle("🐈Help Page for Personal Cat Pictures!🐈")
+			.setDescription(`Smart module for sending cat pictures. For admin help page call \`${P}help cat admin\``)
+			.addField(`${P}picture`, `Sends a picture of a cat\n*Aliases: \` ${P}pic | ${P}p \`*`)
+			.addField(`${P}leaderboard`, `Shows the leaderboard of server which viewed the most cat pictures\n*Aliases: \` ${P}lb \`*`)
+			.addField(`${P}stats cat`, "Shows some statistics");
+	}
+
+	private sendAdminHelp(message: Message): Promise<void> {
+		const P = PREFIX; // just shorter
+		const embed= new MessageEmbed()
+			.setColor('#450000')
 			.setTitle("Help Page for Personal Cat Pictures!")
-			.setDescription(`Smart module for sending cat pictures. For admin help page call ${PREFIX}help cat admin`)
-			.addField(`${PREFIX}leaderboard | ${PREFIX}lb`, "Shows the leaderboard of server which viewed the most cat pictures")
-			.addField(`${PREFIX}pic | ${PREFIX}p`, "Sends a picture of a cat")
-			.addField(`${PREFIX}stats cat`, "Shows some statistics");
+			.addField(`${P}reset`, `Reset already send pictures cache`)
+			.addField(`${P}reload`, `Renew picture path cache with files from filesystem\n *Aliases: \` ${P}r \`*`)
+			.addField(`${P}list`, "List loaded pictures");
+		return new Promise(() => message.channel.send(embed));
 	}
 
 	public moduleName(): string {
@@ -212,7 +224,7 @@ export class CatModule extends Module {
 			case "list": case "l":
 				return new CmdActionAsync(message => this.list(message))
 					.setNeededPermission([Perm.BOT_ADMIN]);
-			case "pic": case "p":
+			case "picture": case "pic": case "p":
 				return new CmdActionAsync(message => this.sendPic(message));
 			case "leaderboard": case "lb":
 				return new CmdActionAsync(message => new Promise(() => this.sendLeaderboard(message)));
@@ -314,15 +326,5 @@ export class CatModule extends Module {
 		const guildDbService = this.dbs.getCustomDbService(db => new GuildManagementDbService(db)) as GuildManagementDbService;
 		const guild = guildDbService.getGuild(guildStat.guildId);
 		return `${guild?.guildName ?? "<UNAVAILABLE>"} | ${guildStat.picturesViewed} Pictures Viewed`;
-	}
-
-	private sendAdminHelp(message: Message): Promise<void> {
-		const embed= new MessageEmbed()
-			.setColor('#450000')
-			.setTitle("Help Page for Personal Cat Pictures!")
-			.addField(`${PREFIX}reset | ${PREFIX}lb`, "Reset already send pictures cache")
-			.addField(`${PREFIX}reload | ${PREFIX}p`, "Renew picture path cache with files from filesystem")
-			.addField(`${PREFIX}list`, "List loaded pictures");
-		return new Promise(() => message.channel.send(embed));
 	}
 }
