@@ -142,7 +142,7 @@ export class CatModule extends Module {
 			.setTitle("Help Page Cat Module")
 			.setDescription('Smart module for sending cat pictures')
 			.addField(`${PREFIX}leaderboard | ${PREFIX}lb`, "Shows the leaderboard of server which viewed the most cat pictures")
-			.addField(`${PREFIX}pic`, "Sends a picture of a cat"),
+			.addField(`${PREFIX}pic`, "Sends a picture of a cat")
 			.addField(`${PREFIX}stats cat`, "Shows some statistics");
 	}
 

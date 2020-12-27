@@ -54,7 +54,7 @@ class CoreModule extends Module {
 				msg.reply("Your discord id: " + msg.author.id); 
 			}
 			if (cmd == "invite") {
-				msg.channel.send("TODO");
+				msg.channel.send("https://discord.com/oauth2/authorize?client_id=791080285990682665&scope=bot");
 			}
 		});
 	}
