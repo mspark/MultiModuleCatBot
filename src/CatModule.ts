@@ -211,7 +211,7 @@ export class CatModule extends Module {
 		discordClient.on('message', async (msg: Message) => {
 			const cmd = super.cmdFilter(msg.content);
 			const action = this.actionOnCmd(super.getCmd(msg.content));
-			await action.invokeWithAutPermissoins(msg);
+			await action.invokeWithAutoPermissions(msg);
 		});
 	}
 
@@ -231,7 +231,8 @@ export class CatModule extends Module {
 			case "leaderboard": case "lb":
 				return new CmdActionAsync(message => new Promise(() => this.sendLeaderboard(message)));
 			case "help cat admin": 
-				return new CmdActionAsync(message => this.sendAdminHelp(message)).setNeededPermission([Perm.BOT_ADMIN]);
+				return new CmdActionAsync(message => this.sendAdminHelp(message))
+					.setNeededPermission([Perm.BOT_ADMIN]);
 			default:
 				return new CmdActionAsync(message => new Promise(() => ""));
 		}
