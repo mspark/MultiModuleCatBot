@@ -249,7 +249,7 @@ export class CatModule extends Module {
 			.setDescription('Loaded cat pictures from filesystem.');
 		const paths = this.picturePaths
 			.map(p => p.picturePath)
-			.join("\n");
+			.join("\n") || "Nothing";
 		exampleEmbed.addField('All', paths, true);
 		message.channel.send(exampleEmbed);
 	}
@@ -262,7 +262,9 @@ export class CatModule extends Module {
 			.map(entry => entry.sendPictureId);
 		const randomPicId = this.generateRandomValidPictureId(alreadySentIds);
 		const randomPicPath = this.picturePaths.find(entry => entry.id == randomPicId)?.picturePath;
-		if (!randomPicPath) {
+		if(this.picturePaths.length == 0) {
+			message.channel.send("No pictures available. Contact bot admin");
+		} else if (!randomPicPath) {
 			message.channel.send({
 				content: "All photos were watched on this server! Starting again!"
 			});
@@ -294,8 +296,7 @@ export class CatModule extends Module {
 		const embed =  new MessageEmbed()
 			.setColor('#0099ff')
 			.setTitle("Cat module statistics")
-			.setDescription(`😻 Total cat pictures send: ${stats.overallPicturesViewed} \n 
-				🐈 Cat pictures send on this server: ${guildStats?.picturesViewed}`);
+			.setDescription(`😻 Total cat pictures send: ${stats.overallPicturesViewed} \n🐈 Cat pictures send on this server: ${guildStats?.picturesViewed}`);
 		message.channel.send(embed);
 	}
 
