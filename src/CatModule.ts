@@ -158,20 +158,22 @@ class PicturesFileReader {
 		}
 		return cacheEntrys;
 	}
+
+	public getPicturesPath(): PictureCacheModel[] {
+		return this.picturePaths;
+	}
 }
 
 export class CatModule extends Module {
 	private catDbService: CatDbService;
-	private picturePaths: PictureCacheModel[];
 	private statsDbService: CatStatisticsDbService;
 
 	constructor(private dbs: DbService, private picReader: PicturesFileReader) {
 		super();
-		this.picturePaths = [];
 		this.catDbService = dbs.getCustomDbService(db => new CatDbService(db)) as CatDbService;
 		this.statsDbService = dbs.getCustomDbService(db => new CatStatisticsDbService(db)) as CatStatisticsDbService;
 	}
-	
+
 	public static async newInstance(picturesPath: string | undefined, dbService: DbService): Promise<CatModule> {
 		const reader = new PicturesFileReader(dbService);
 		await reader.initCache(picturesPath);
@@ -239,7 +241,7 @@ export class CatModule extends Module {
 		console.log("Reload invoked from " + message.author);
 		message.reply("Reload...");
 		await this.picReader.refillCache();
-		message.reply("Done. Found " + this.picturePaths.length + " files");
+		message.reply("Done. Found " + this.picReader.getPicturesPath().length + " files");
 	}
 
 	private async list(message: Message): Promise<void> {
@@ -247,7 +249,8 @@ export class CatModule extends Module {
 			.setColor('#450000')
 			.setTitle("Loaded Pictures")
 			.setDescription('Loaded cat pictures from filesystem.');
-		const paths = this.picturePaths
+		const paths = this.picReader
+			.getPicturesPath()
 			.map(p => p.picturePath)
 			.join("\n") || "Nothing";
 		exampleEmbed.addField('All', paths, true);
@@ -261,8 +264,8 @@ export class CatModule extends Module {
 		let alreadySentIds = this.catDbService.alreadySentPictures(guildId)
 			.map(entry => entry.sendPictureId);
 		const randomPicId = this.generateRandomValidPictureId(alreadySentIds);
-		const randomPicPath = this.picturePaths.find(entry => entry.id == randomPicId)?.picturePath;
-		if(this.picturePaths.length == 0) {
+		const randomPicPath = this.picReader.getPicturesPath().find(entry => entry.id == randomPicId)?.picturePath;
+		if(this.picReader.getPicturesPath().length == 0) {
 			message.channel.send("No pictures available. Contact bot admin");
 		} else if (!randomPicPath) {
 			message.channel.send({
@@ -284,7 +287,7 @@ export class CatModule extends Module {
 	}
 
 	private generateRandomValidPictureId(alreadySentIds: number[]) {
-		let items = this.picturePaths
+		let items = this.picReader.getPicturesPath()
 			.map(p => p.id)
 			.filter(id => !alreadySentIds.includes(id));
 		return items[Math.floor(Math.random() * items.length)];
