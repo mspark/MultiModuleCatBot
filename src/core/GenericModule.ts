@@ -9,17 +9,17 @@ export class NotACommandError extends Error {}
 export abstract class Module {
 
 	public registerBasicCommands(client: Client): void {
-		client.on('message', async (msg: Message) => {
+		client.on('message', (msg: Message) => {
 			const statsCmd = `${STATS_PREFIX} ${this.moduleName()}`;
 			const helpCmd = `help ${this.moduleName()}`
-			try {
+			this.saveRun(async () => {
 				const cmd = this.cmdFilter(msg);
 				if (cmd === statsCmd.trim()) {
 					this.sendStats(msg);
 				} else if (cmd === helpCmd.trim()) {
 					msg.reply(this.helpPage());
 				}
-			} catch {}
+			});
 		});
 	}
 
@@ -38,6 +38,16 @@ export abstract class Module {
 
 	protected getCmd(rawCmd: string): string {
 		return rawCmd.substring(PREFIX.length, rawCmd.length);
+	}
+
+	protected async saveRun(func: () => Promise<void>): Promise<void> {
+		try {
+			await func();
+		} catch (e) {
+			if (!(e as NotACommandError).name) {
+				console.log(e);
+			}
+		}
 	}
 
 	abstract moduleName(): string;

@@ -11,7 +11,7 @@ export class CoreModule extends Module {
 		const embed = new MessageEmbed()
 			.setColor('#0099ff')
 			.setTitle("Help Page")
-			.setDescription('Specify the module stats you want. Do this with: \`!stats <module>\`')
+			.setDescription('Specify the module stats you want. Do this with: `!stats <module>`')
 			.addField('Available Modules', this.moduleNamesConcat());
 		message.channel.send(embed);
 	}
@@ -20,7 +20,7 @@ export class CoreModule extends Module {
 		return new MessageEmbed()
 			.setColor('#0099ff')
 			.setTitle("Help Page")
-			.setDescription('Welcome to this multi module bot. Please call the respective help page of the desired module via \`!help <module>\`')
+			.setDescription('Welcome to this multi module bot. Please call the respective help page of the desired module via `!help <module>`')
 			.addField('Available Modules', this.moduleNamesConcat(), true);
 	}
 
@@ -31,16 +31,22 @@ export class CoreModule extends Module {
 	// Place for global actions which no module has to implement by its own
 	public registerActions(client: Client): void {
 		client.on('message', async (msg: Message) => {
-			let cmd: string | undefined = undefined;
-			try {
-				cmd = super.cmdFilter(msg);
-			} catch {}
-			if (cmd == "id") {
-				msg.reply("Your discord id: " + msg.author.id); 
-			}
-			if (cmd == "invite") {
-				msg.channel.send("https://discord.com/oauth2/authorize?client_id=791080285990682665&scope=bot&permissions=126016");
-			}
+			super.saveRun(async () => {
+				const cmd = super.cmdFilter(msg);
+				if (cmd == "id") {
+					msg.reply("Your discord id: " + msg.author.id); 
+				}
+				if (cmd == "invite") {
+					msg.channel.send("https://discord.com/oauth2/authorize?client_id=791080285990682665&scope=bot&permissions=126016");
+				}
+	
+			})
+		});
+		client.on('ready', () => {
+			console.log(`Logged in as ${client.user?.tag}!`);
+		});
+		client.on("disconnect", () => {
+			console.log(`The WebSocket has closed and will no longer attempt to reconnect`);
 		});
 	}
 

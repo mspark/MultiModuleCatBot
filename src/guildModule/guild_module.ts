@@ -1,6 +1,5 @@
 import { Client, Collection, Guild, Message, MessageEmbed } from "discord.js";
 import Lowdb from "lowdb";
-import { stringify } from "querystring";
 import { DbSchema, GUILD_DB_IDENTIFIER } from "../database/DbSchema";
 import { DbService, GenericDbService } from "../database/DbService";
 import { Module } from "../core/GenericModule";
@@ -82,12 +81,11 @@ export class GuildManagementModule extends Module {
     
     public registerActions(client: Client): void {
         client.on("message", (message: Message) => {
-            try {
-                const cmd = super.cmdFilter(message);
+            super.saveRun(async () => {
                 if (message.guild)  {
                     this.customDbService.updateLastCommand(message.guild.id);
                 }
-            } catch {}
+            });
         });
         client.on("ready", () => {
             const guilds = client.guilds.cache;

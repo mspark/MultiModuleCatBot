@@ -1,13 +1,13 @@
 import lowdb from "lowdb";
 import { default as FileAsync } from "lowdb/adapters/FileAsync";
-import { DbSchema, defaultSchema, GUILD_DB_IDENTIFIER } from "./DbSchema";
+import { DbSchema, defaultSchema } from "./DbSchema";
 
 export class GenericDbService {}
 
 export class DbService {
     private db!: lowdb.LowdbAsync<DbSchema>;
 
-    private constructor() {}
+    private constructor() {/*Disabled*/}
 
     public static async newInstance(): Promise<DbService> {
         const service = new DbService();

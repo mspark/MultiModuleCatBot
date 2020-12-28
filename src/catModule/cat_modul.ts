@@ -1,5 +1,5 @@
-import { DbService, GenericDbService } from "../database/DbService";
-import { Client, Message, MessageEmbed, MessageFlags } from "discord.js";
+import { DbService } from "../database/DbService";
+import { Client, Message, MessageEmbed } from "discord.js";
 
 import { Module, NotACommandError, PREFIX } from "../core/GenericModule";
 import { GuildManagementDbService } from "../guildModule/guild_module";
@@ -60,17 +60,13 @@ export default class CatModule extends Module {
 		return "cat";
 	}
 
-	public registerActions(discordClient: Client) {
+	public registerActions(discordClient: Client): void {
 		discordClient.on('message', async (msg: Message) => {
-			try {
+			this.saveRun(async () => {
 				const cmd = super.cmdFilter(msg);
 				const action = this.actionOnCmd(cmd);
 				await action.invokeWithAutoPermissions(msg);
-			} catch (e) {
-				if (!(e as NotACommandError).name) {
-					console.log(e);
-				}
-			}
+			});
 		});
 	}
 
@@ -150,7 +146,7 @@ export default class CatModule extends Module {
 		}
 		const guildId = message.guild?.id ?? "0";
 		const getRandomPicObj = async (cat?: string) => {
-			let alreadySentIds = this.catDbService
+			const alreadySentIds = this.catDbService
 				.alreadySentPictures(guildId)
 				.map(entry => entry.sendPictureId);
 			const randomPicId = await this.generateRandomValidPictureId(alreadySentIds, cat);
@@ -224,7 +220,6 @@ export default class CatModule extends Module {
 	}
 
 	public sendLeaderboard(message: Message): void {
-		const guildService = this.dbs.getCustomDbService(db => new GuildManagementDbService(db)) as GuildManagementDbService;
 		const sortedGuildNames = this.statsDbService
 			.getStatistics().guildStats
 			.sort((a,b) => a.picturesViewed - b.picturesViewed)
@@ -260,7 +255,4 @@ export default class CatModule extends Module {
 			.setDescription(paths.join("\n"));
 		message.channel.send(embed);
 	}
-}
-function delay(ms: number): Promise<void> {
-    return new Promise( resolve => setTimeout(resolve, ms) );
 }

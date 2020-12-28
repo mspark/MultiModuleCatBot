@@ -14,7 +14,7 @@ export class CatDbService extends GenericDbService {
 	}
 
 	public refreshPicturePath(models: PictureCacheModel[]): void {
-		let pictures = this.db.get(PICTURES_IDENTIFIER);
+		const pictures = this.db.get(PICTURES_IDENTIFIER);
 		pictures.remove(a => true).write(); // delete all
 		models.forEach(e => pictures.push(e).write());
 	}
@@ -38,7 +38,7 @@ export class CatDbService extends GenericDbService {
 	}
 
 	public alreadySentPictures(guildId: string): SendPicturesModel[] {
-		let content = this.db.get(SEND_CACHE_IDENTIFIER).value() ?? [];
+		const content = this.db.get(SEND_CACHE_IDENTIFIER).value() ?? [];
 		return content.filter(a => a.guildId === guildId);
 	}
 }

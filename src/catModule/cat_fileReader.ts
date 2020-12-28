@@ -20,7 +20,7 @@ export class PicturesFileReader {
 		this.catDbService = dbService.getCustomDbService(db => new CatDbService(db)) as CatDbService;
 	}
 
-	public async initCache(picturesPath: string | undefined){
+	public async initCache(picturesPath: string | undefined): Promise<void> {
 		if (!picturesPath) {
 			console.log("Warning: No PICTURE_DIR_PATH in .env specified. Using ./pictures/")
 		}
@@ -54,11 +54,11 @@ export class PicturesFileReader {
 
 	private async readAndParseFiles(): Promise<PictureCacheModel[]> {
 		const files = await this.getRealtivePicPaths();
-		let cacheEntrys: PictureCacheModel[] = [];
+		const cacheEntrys: PictureCacheModel[] = [];
 		for (let index = 0; index < files.length; index++) {
 			const singleFilePath = files[index];
 			const catname = await this.catNameFromFile(singleFilePath);
-			let pictureCacheEntry: PictureCacheModel = { id: index + 1, picturePath: singleFilePath};
+			const pictureCacheEntry: PictureCacheModel = { id: index + 1, picturePath: singleFilePath};
 			if (catname) {
 				pictureCacheEntry.catName = catname;
 			}
@@ -87,7 +87,7 @@ export class PicturesFileReader {
 	}
 
 	private async readAllFiles(path: string): Promise<string[]> {
-		let dirs: string[] = await this.readAllDirectory(path)
+		const dirs: string[] = await this.readAllDirectory(path)
 		let files: string[] = await this.getFiles(path, async f => !dirs.includes(f))
 		for (let index = dirs.length - 1; index >= 0; index--) {
 			const element = dirs[index];
