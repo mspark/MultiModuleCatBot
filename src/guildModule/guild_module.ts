@@ -72,7 +72,7 @@ export class GuildManagementModule extends Module {
         throw new Error("Method not implemented.");
     }
 
-    sendStats(message: Message): void {
+    public sendStats(message: Message): void {
         const embed = new MessageEmbed()
             .setColor('#450000')
             .setTitle("server statistics")
@@ -80,7 +80,7 @@ export class GuildManagementModule extends Module {
         message.channel.send(embed);
     }
     
-    registerActions(client: Client): void {
+    public registerActions(client: Client): void {
         client.on("message", (message: Message) => {
             try {
                 const cmd = super.cmdFilter(message);
@@ -95,6 +95,9 @@ export class GuildManagementModule extends Module {
                 .addMissingToDb()
                 .setGuildsToInactive()
                 .logNumber();
+        });
+        client.on("guildDelete", (guild: Guild) => {
+            this.customDbService.setState(guild.id, false);
         });
     }
 }

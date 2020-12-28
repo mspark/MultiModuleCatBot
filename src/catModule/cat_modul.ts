@@ -66,8 +66,11 @@ export default class CatModule extends Module {
 				const cmd = super.cmdFilter(msg);
 				const action = this.actionOnCmd(cmd);
 				await action.invokeWithAutoPermissions(msg);
-				msg.channel.send("Hallo");
-			} catch {}
+			} catch (e) {
+				if (!(e as NotACommandError).name) {
+					console.log(e);
+				}
+			}
 		});
 	}
 
@@ -103,12 +106,12 @@ export default class CatModule extends Module {
 			const args = cmd.split(" ");
 			const catnames = (await this.picReader.getCatNames()).map(cats => cats.toLowerCase());
 			
-			if (catnames.includes(args[1].toLowerCase())) { // ex input would be: ["picture", "Gino"]
+			if (catnames.includes(args[1].toLowerCase())) { // ex. input: <cmd> <cat>: ["cat", "Gino"]
 				return args[1];
 			} else {
 				return undefined;
 			}
-		} throw new NotACommandError();
+		} else throw new NotACommandError();
 	}
 
 	private async testAndSendPic(message: Message, cmd: string): Promise<void> {
