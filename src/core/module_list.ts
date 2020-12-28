@@ -1,14 +1,15 @@
-import CatModule from "../catModule/cat_modul";
-import { DbService } from "../database/DbService";
-import { Module } from "./GenericModule";
-import { GuildManagementModule } from "../guildModule/guild_module";
-import { Globals } from "../globals_utils";
+/* eslint-disable import/extensions */
+/* eslint-disable import/no-unresolved */
+import CatModule from "../catModule/CatModule";
+import DbService from "../database/DbService";
+import { Globals } from "../Utils";
+import GuildManagementModule from "../guildModule/GuildManagementModule";
+import Module from "./GenericModule";
 
-
-export async function getModuleList(): Promise<Module[]> {
-    const dbservice = await DbService.newInstance();
-    return [
-        await CatModule.newInstance(Globals.CONFIG.catPicturesPath, dbservice),
-        new GuildManagementModule(dbservice),
-    ]
+export default async function getModuleList(): Promise<Module[]> {
+  const dbservice = await DbService.newInstance();
+  return [
+    await CatModule.newInstance(Globals.CONFIG.catPicturesPath, dbservice),
+    new GuildManagementModule(dbservice),
+  ];
 }

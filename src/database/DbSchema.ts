@@ -1,3 +1,5 @@
+/* eslint-disable import/extensions */
+/* eslint-disable import/no-unresolved */
 import { CatBotGuildStatistic, PictureCacheModel, SendPicturesModel } from "../catModule/types";
 import { GuildSchema } from "../guildModule/types";
 
@@ -17,10 +19,10 @@ export interface DbSchema {
 }
 
 export const defaultSchema = {
-    init: false,
-    cat_pictures: [],
-    guilds: [],
-    cat_sendCache: [],
-    cat_stats: [],
-    cat_stats_count: 0
+  init: false,
+  cat_pictures: [],
+  guilds: [],
+  cat_sendCache: [],
+  cat_stats: [],
+  cat_stats_count: 0,
 } as DbSchema;
