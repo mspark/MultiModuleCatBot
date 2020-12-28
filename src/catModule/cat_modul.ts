@@ -1,5 +1,5 @@
 import { DbService, GenericDbService } from "../database/DbService";
-import { Client, Message, MessageEmbed } from "discord.js";
+import { Client, Message, MessageEmbed, MessageFlags } from "discord.js";
 
 import { Module, NotACommandError, PREFIX } from "../core/GenericModule";
 import { GuildManagementDbService } from "../guildModule/guild_module";
@@ -66,6 +66,7 @@ export default class CatModule extends Module {
 				const cmd = super.cmdFilter(msg);
 				const action = this.actionOnCmd(cmd);
 				await action.invokeWithAutoPermissions(msg);
+				msg.channel.send("Hallo");
 			} catch {}
 		});
 	}
@@ -121,9 +122,9 @@ export default class CatModule extends Module {
 
 	private async reload(message: Message): Promise<void> {
 		console.log("Reload invoked from " + message.author);
-		message.reply("Reload...");
+		await message.reply("Reload...");
 		await this.picReader.fillCache();
-		message.reply("Done. Found " + this.picReader.getPicturesPath().length + " files");
+		await message.reply("Done. Found " + this.picReader.getPicturesPath().length + " files");
 	}
 
 	private async list(message: Message): Promise<void> {
@@ -256,4 +257,7 @@ export default class CatModule extends Module {
 			.setDescription(paths.join("\n"));
 		message.channel.send(embed);
 	}
+}
+function delay(ms: number): Promise<void> {
+    return new Promise( resolve => setTimeout(resolve, ms) );
 }

@@ -1,3 +1,6 @@
+require('dotenv').config();
+
+
 export namespace Utils {
         
     export async function asyncFilter(arr, predicate) {

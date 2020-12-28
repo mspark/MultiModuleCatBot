@@ -2,7 +2,6 @@ import { Client, Message, MessageEmbed } from "discord.js";
 import { getModuleList } from "./module_list";
 import { Module } from "./GenericModule";
 import { CoreModule } from "./core_module";
-require('dotenv').config();
 
 async function run() {
 	const modules = await getModuleList();
