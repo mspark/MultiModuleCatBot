@@ -2,14 +2,9 @@
 /* eslint-disable import/no-unresolved */
 import { Message } from "discord.js";
 import { Utils } from "../Utils";
+import { Perm } from "./types";
 
-export enum Perm {
-    EVERYONE,
-    GUILD_ADMIN,
-    BOT_ADMIN,
-}
-
-export class CmdActionAsync {
+export default class CmdActionAsync {
     private neededPerms: Perm[];
 
     constructor(private action: (message: Message) => Promise<void>) {

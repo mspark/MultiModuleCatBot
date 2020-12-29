@@ -2,7 +2,7 @@
 /* eslint-disable import/no-unresolved */
 import { Client } from "discord.js";
 import CoreModule from "./CoreModule";
-import getModuleList from "./module_list";
+import getModuleList from "./moduleList";
 
 async function run() {
   const modules = await getModuleList();

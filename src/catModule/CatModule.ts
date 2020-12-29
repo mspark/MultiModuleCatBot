@@ -4,14 +4,14 @@ import { Client, Message, MessageEmbed } from "discord.js";
 
 import { CatBotGuildStatistic, PictureCacheModel, NoPicturesLeftError } from "./types";
 import { Utils } from "../Utils";
-import { CmdActionAsync, Perm } from "../core/core_permissions";
 import Module, { PREFIX } from "../core/GenericModule";
 import CatDbService from "./CatDbService";
 import PicturesFileReader from "./PicturesFileReader";
 import DbService from "../database/DbService";
-import NotACommandError from "../core/NotACommandError";
 import GuildManagementDbService from "../guildModule/GuildManagementDbService";
 import CatStatisticsDbService from "./CatStatisticsDbService";
+import CmdActionAsync from "../core/CmdActionAsync";
+import { NotACommandError, Perm } from "../core/types";
 
 export default class CatModule extends Module {
   private catDbService: CatDbService;

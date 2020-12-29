@@ -2,7 +2,7 @@
 /* eslint-disable import/extensions */
 import { Client, Message, MessageEmbed } from "discord.js";
 import { Globals } from "../Utils";
-import NotACommandError from "./NotACommandError";
+import { NotACommandError } from "./types";
 
 export const PREFIX = "!";
 export const STATS_PREFIX = "stats";
