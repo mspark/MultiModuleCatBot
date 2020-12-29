@@ -1,5 +1,5 @@
-/* eslint-disable import/extensions */
 /* eslint-disable import/no-unresolved */
+/* eslint-disable import/extensions */
 import { Client, Message, MessageEmbed } from "discord.js";
 import { Globals } from "../Utils";
 import NotACommandError from "./NotACommandError";
@@ -44,6 +44,8 @@ export default abstract class Module {
       await func();
     } catch (e) {
       if (!(e as NotACommandError).name) {
+        console.log(e);
+      } else if (Globals.CONFIG.debug) {
         console.log(e);
       }
     }

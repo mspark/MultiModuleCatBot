@@ -141,7 +141,7 @@ export default class CatModule extends Module {
   }
 
   private async sendPic(message: Message, catname?: string): Promise<void> {
-    if (this.picReader.getPicturesPath().length == 0) {
+    if (this.picReader.getPicturesPath().length === 0) {
       message.channel.send("No pictures available. Contact bot admin");
       return;
     }
@@ -151,7 +151,7 @@ export default class CatModule extends Module {
         .alreadySentPictures(guildId)
         .map((entry) => entry.sendPictureId);
       const randomPicId = await this.generateRandomValidPictureId(alreadySentIds, cat);
-      return this.picReader.getPicturesPath().find((entry) => entry.id == randomPicId);
+      return this.picReader.getPicturesPath().find((entry) => entry.id === randomPicId);
     };
     let randomPicObj: PictureCacheModel | undefined;
     try {
@@ -182,14 +182,15 @@ export default class CatModule extends Module {
   }
 
   private async generateRandomValidPictureId(alreadySentIds: number[], catname?: string): Promise<number> {
-    let items = this.picReader.getPicturesPath()
+    let items = this.picReader
+      .getPicturesPath()
       .filter((p) => !alreadySentIds.includes(p.id));
     if (catname) {
-      items = await Utils.asyncFilter(items, async (p: PictureCacheModel) => await this.picReader.catNameFromFile(p.picturePath));
+      items = await Utils.asyncFilter(items, (p: PictureCacheModel) => this.picReader.catNameFromFile(p.picturePath));
     }
     if (items.length === 0) {
       if (catname) {
-      // retry without specific cat - this avoids reset database when a cat is specified
+        // retry without specific cat - this avoids reset database when a cat is specified
         return this.generateRandomValidPictureId(alreadySentIds);
       }
       throw new NoPicturesLeftError("No valid pictures left");
@@ -214,7 +215,8 @@ export default class CatModule extends Module {
     const embed = new MessageEmbed()
       .setColor("#0099ff")
       .setTitle("Cat module statistics")
-      .setDescription(`😻 Total cat pictures send: ${stats.overallPicturesViewed} \n🐈 Cat pictures send on this server: ${guildStats?.picturesViewed}`);
+      .setDescription(`😻 Total cat pictures send: ${stats.overallPicturesViewed} \n`
+        + `🐈 Cat pictures send on this server: ${guildStats?.picturesViewed}`);
     message.channel.send(embed);
   }
 
@@ -234,7 +236,7 @@ export default class CatModule extends Module {
   private static createLeaderboardDescription(sortedGuildNames: string[]): string {
     const emojis = ["🏆", "🥈", "🥉"];
     let description = "";
-    for (let index = 0; index < 3; index++) {
+    for (let index = 0; index < 3; index += 1) {
       description += `${emojis[index]} ${sortedGuildNames[index]}\n`;
     }
     return description;

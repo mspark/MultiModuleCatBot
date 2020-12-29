@@ -10,7 +10,6 @@ import {
 } from "./types";
 
 export default class CatStatisticsDbService extends GenericDbService {
-  // eslint-disable-next-line no-unused-vars
   constructor(private db: Lowdb.LowdbAsync<DbSchema>) {
     super();
   }

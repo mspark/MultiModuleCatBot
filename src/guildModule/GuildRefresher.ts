@@ -1,17 +1,15 @@
+/* eslint-disable no-useless-constructor */
 /* eslint-disable import/no-unresolved */
 /* eslint-disable import/extensions */
 import { Collection, Guild } from "discord.js";
 import GuildManagementDbService from "./GuildManagementDbService";
 
 export default class GuildRefresher {
-  // eslint-disable-next-line no-useless-constructor
-  // eslint-disable-next-line no-unused-vars
-  constructor(private guilds: Collection<string, Guild>, private customDbService: GuildManagementDbService) {
-
-  }
+  // eslint-disable-next-line no-empty-function
+  constructor(private guilds: Collection<string, Guild>, private customDbService: GuildManagementDbService) {}
 
   addMissingToDb(): GuildRefresher {
-    this.guilds.forEach((guild: Guild, gid: string) => {
+    this.guilds.forEach((_guild: Guild, gid: string) => {
       if (this.customDbService.getGuildList().includes(gid)) {
         this.customDbService.setState(gid, true);
       } else {

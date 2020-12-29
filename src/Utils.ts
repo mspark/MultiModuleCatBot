@@ -33,6 +33,7 @@ export namespace Globals {
       apiToken: process.env.API_TOKEN,
       botAdminList: process.env.BOT_ADMINS?.split(","),
       catPicturesPath: process.env.PICTURE_DIR_PATH,
+      debug: false,
     };
 
     export const OWN_DC_ID = "791080285990682665";

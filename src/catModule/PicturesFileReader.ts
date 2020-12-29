@@ -59,8 +59,10 @@ export default class PicturesFileReader {
   private async readAndParseFiles(): Promise<PictureCacheModel[]> {
     const files = await this.getRealtivePicPaths();
     const cacheEntrys: PictureCacheModel[] = [];
-    for (let index = 0; index < files.length; index++) {
+    for (let index = 0; index < files.length; index += 1) {
       const singleFilePath = files[index];
+      // disabled: get an ordered output
+      // eslint-disable-next-line no-await-in-loop
       const catname = await this.catNameFromFile(singleFilePath);
       const pictureCacheEntry: PictureCacheModel = { id: index + 1, picturePath: singleFilePath };
       if (catname) {
@@ -92,12 +94,15 @@ export default class PicturesFileReader {
   }
 
   private static async readAllFiles(path: string): Promise<string[]> {
-    const dirs: string[] = await PicturesFileReader.readAllDirectory(path);
-    let files: string[] = await PicturesFileReader.getFiles(path, async (f) => !dirs.includes(f));
-    for (let index = dirs.length - 1; index >= 0; index--) {
-      const element = dirs[index];
-      files = files.concat(await PicturesFileReader.readAllFiles(element));
-    }
+    const dirs = await PicturesFileReader.readAllDirectory(path);
+    let files = await PicturesFileReader.getFiles(path, async (f) => !dirs.includes(f));
+    await Promise.all(
+      dirs.map((d) => PicturesFileReader.readAllFiles(d)),
+    ).then((result) => {
+      result.forEach((filesInDir) => {
+        files = files.concat(filesInDir);
+      });
+    });
     return files;
   }
 
@@ -110,13 +115,14 @@ export default class PicturesFileReader {
   private static async getFiles(dir: string, filter: (file: string) => Promise<boolean>): Promise<string[]> {
     const files = await Filesystem.readdir(dir);
     const filteredList: string[] = [];
-    for (let index = 0; index < files.length; index++) {
-      const element = `${dir}/${files[index]}`;
-      // eslint-disable-next-line no-await-in-loop
-      if (await filter(element)) {
-        filteredList.push(element);
-      }
-    }
+    await Promise.all(
+      files.map(async (file) => {
+        const fullFilePath = `${dir}/${file}`;
+        if (await filter(fullFilePath)) {
+          filteredList.push(fullFilePath);
+        }
+      }),
+    );
     return filteredList;
   }
 

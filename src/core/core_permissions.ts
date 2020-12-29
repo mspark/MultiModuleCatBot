@@ -27,14 +27,16 @@ export class CmdActionAsync {
     }
 
     public async invoke(message: Message, actualPermission: Perm[]): Promise<void> {
-      let matches = true;
-      actualPermission = actualPermission ?? [Perm.EVERYONE];
-      this.neededPerms.forEach((p) => matches = matches && actualPermission.includes(p));
-      if (matches) {
-        await this.action(message);
-      } else {
-        message.reply("Not enough permission to do this");
+      if (actualPermission.length === 0) {
+        actualPermission.push(Perm.EVERYONE);
       }
+      const matches = this.neededPerms
+        .map((p) => actualPermission.includes(p))
+        .reduce((a, b) => a && b);
+      if (matches) {
+        return this.action(message);
+      }
+      return new Promise(() => message.reply("Not enough permission to do this"));
     }
 
     public async invokeWithAutoPermissions(message: Message): Promise<void> {

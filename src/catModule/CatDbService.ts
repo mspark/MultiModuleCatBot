@@ -6,7 +6,6 @@ import GenericDbService from "../database/GenericDbService";
 import { PictureCacheModel, SendPicturesModel } from "./types";
 
 export default class CatDbService extends GenericDbService {
-  // eslint-disable-next-line no-unused-vars
   constructor(private db: Lowdb.LowdbAsync<DbSchema>) {
     super();
   }
@@ -17,7 +16,7 @@ export default class CatDbService extends GenericDbService {
 
   public refreshPicturePath(models: PictureCacheModel[]): void {
     const pictures = this.db.get(PICTURES_IDENTIFIER);
-    pictures.remove((a) => true).write(); // delete all
+    pictures.remove(() => true).write(); // delete all
     models.forEach((e) => pictures.push(e).write());
   }
 
@@ -32,11 +31,10 @@ export default class CatDbService extends GenericDbService {
   public async deleteSendPictures(guildId?: string): Promise<void> {
     const dbs = this.db.get(SEND_CACHE_IDENTIFIER);
     if (guildId) {
-      dbs.remove((a) => a.guildId === guildId);
+      await dbs.remove((a) => a.guildId === guildId).write();
     } else {
-      dbs.remove((a) => true);
+      await dbs.remove(() => true).write();
     }
-    await dbs.write();
   }
 
   public alreadySentPictures(guildId: string): SendPicturesModel[] {
