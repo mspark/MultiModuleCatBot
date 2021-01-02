@@ -107,6 +107,8 @@ export default class CatModule extends Module {
       const catnames = (await this.picReader.getCatNames()).map((cats) => cats.toLowerCase());
       if (catnames.includes(args[1].toLowerCase())) { // ex. input: <cmd> <cat>: ["cat", "Gino"]
         return args[1];
+      } else {
+        return undefined;
       }
     } throw new NotACommandError();
   }
