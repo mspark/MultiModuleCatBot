@@ -58,11 +58,9 @@ export default abstract class Module {
    *
    * @param client Discord client before without a connected state
    */
-  // eslint-disable-next-line no-unused-vars
   abstract registerActions(client: Client): void;
 
   abstract helpPage(): MessageEmbed;
 
-  // eslint-disable-next-line no-unused-vars
   abstract sendStats(message: Message): void;
 }

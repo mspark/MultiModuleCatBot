@@ -6,16 +6,15 @@ import GenericDbService from "../database/GenericDbService";
 import { GuildSchema } from "./types";
 
 export default class GuildManagementDbService extends GenericDbService {
-  // eslint-disable-next-line no-unused-vars
   constructor(private db: Lowdb.LowdbAsync<DbSchema>) {
     super();
   }
 
   getGuildList(): string[] {
-    const values = this.db
+    return this.db
       .get(GUILD_DB_IDENTIFIER)
-      .value();
-    return values?.map((a) => a.guildId) ?? [];
+      .value()
+      ?.map((a) => a.guildId) ?? [];
   }
 
   addGuild(guild: GuildSchema): void {

@@ -107,9 +107,8 @@ export default class CatModule extends Module {
       const catnames = (await this.picReader.getCatNames()).map((cats) => cats.toLowerCase());
       if (catnames.includes(args[1].toLowerCase())) { // ex. input: <cmd> <cat>: ["cat", "Gino"]
         return args[1];
-      } else {
-        return undefined;
       }
+      return undefined; // TODO make this method more fancy!
     } throw new NotACommandError();
   }
 
@@ -249,7 +248,7 @@ export default class CatModule extends Module {
       (db) => new GuildManagementDbService(db),
     ) as GuildManagementDbService;
     const guild = guildDbService.getGuild(guildStat.guildId);
-    return `${guild?.guildName ?? "<UNAVAILABLE>"} | ${guildStat.picturesViewed} Pictures Viewed`;
+    return `${guild?.guildName ?? "<Not a guild>"} | ${guildStat.picturesViewed} Pictures Viewed`;
   }
 
   private async sendCatList(message: Message): Promise<void> {

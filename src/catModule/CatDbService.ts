@@ -38,7 +38,9 @@ export default class CatDbService extends GenericDbService {
   }
 
   public alreadySentPictures(guildId: string): SendPicturesModel[] {
-    const content = this.db.get(SEND_CACHE_IDENTIFIER).value() ?? [];
-    return content.filter((a) => a.guildId === guildId);
+    return this.db.get(SEND_CACHE_IDENTIFIER)
+      .value()
+      ?.filter((a) => a.guildId === guildId)
+      ?? [];
   }
 }

@@ -84,6 +84,19 @@ export default class PicturesFileReader {
     return catname;
   }
 
+  public getPicturesPath(): PictureCacheModel[] {
+    return this.picturePaths;
+  }
+
+  public async getCatNames(): Promise<string[]> {
+    const dirs = await PicturesFileReader.readAllDirectory(this.dir);
+    return dirs.map((d) => this.removeWorkDirFromPath(d)).map((cats) => Utils.removeOngoingSlash(cats));
+  }
+
+  private removeWorkDirFromPath(path: string): string {
+    return path.substr(this.dir.length, path.length);
+  }
+
   private static async isDirectory(fullPathFile: string): Promise<boolean> {
     const fileStat = await Filesystem.stat(fullPathFile);
     return fileStat.isDirectory();
@@ -93,7 +106,7 @@ export default class PicturesFileReader {
     return PicturesFileReader.getFiles(path, async (f) => PicturesFileReader.isDirectory(f));
   }
 
-  private static async readAllFiles(path: string): Promise<string[]> {
+  public static async readAllFiles(path: string): Promise<string[]> {
     const dirs = await PicturesFileReader.readAllDirectory(path);
     let files = await PicturesFileReader.getFiles(path, async (f) => !dirs.includes(f));
     await Promise.all(
@@ -124,18 +137,5 @@ export default class PicturesFileReader {
       }),
     );
     return filteredList;
-  }
-
-  public getPicturesPath(): PictureCacheModel[] {
-    return this.picturePaths;
-  }
-
-  public async getCatNames(): Promise<string[]> {
-    const dirs = await PicturesFileReader.readAllDirectory(this.dir);
-    return dirs.map((d) => this.removeWorkDirFromPath(d)).map((cats) => Utils.removeOngoingSlash(cats));
-  }
-
-  private removeWorkDirFromPath(path: string): string {
-    return path.substr(this.dir.length, path.length);
   }
 }
