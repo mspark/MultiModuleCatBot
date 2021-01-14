@@ -4,7 +4,7 @@ import { Client, Message, MessageEmbed } from "discord.js";
 
 import { CatBotGuildStatistic, PictureCacheModel, NoPicturesLeftError } from "./types";
 import { Utils } from "../Utils";
-import Module, { PREFIX } from "../core/GenericModule";
+import Module, { PREFIX } from "../core/Module";
 import CatDbService from "./CatDbService";
 import PicturesFileReader from "./PicturesFileReader";
 import DbService from "../database/DbService";
@@ -66,7 +66,7 @@ export default class CatModule extends Module {
   public registerActions(discordClient: Client): void {
     discordClient.on("message", async (msg: Message) => {
       Module.saveRun(async () => {
-        const cmd = Module.cmdFilter(msg);
+        const cmd = Module.extractCommand(msg);
         const action = this.actionOnCmd(cmd);
         await action.invokeWithAutoPermissions(msg);
       });

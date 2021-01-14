@@ -4,7 +4,7 @@ import CatModule from "../catModule/CatModule";
 import DbService from "../database/DbService";
 import { Globals } from "../Utils";
 import GuildManagementModule from "../guildModule/GuildManagementModule";
-import Module from "./GenericModule";
+import Module from "./Module";
 
 export default async function getModuleList(): Promise<Module[]> {
   const dbservice = await DbService.newInstance();

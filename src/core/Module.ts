@@ -13,7 +13,7 @@ export default abstract class Module {
       const statsCmd = `${STATS_PREFIX} ${this.moduleName()}`;
       const helpCmd = `help ${this.moduleName()}`;
       Module.saveRun(async () => {
-        const cmd = Module.cmdFilter(msg);
+        const cmd = Module.extractCommand(msg);
         if (cmd === statsCmd.trim()) {
           this.sendStats(msg);
         } else if (cmd === helpCmd.trim()) {
@@ -25,11 +25,12 @@ export default abstract class Module {
 
   /**
    * Returns the real invoked command without prefix. Can throw a NotACommandError.
+   *
    * @param message Discord message which probably contains a command
    */
-  protected static cmdFilter(message: Message): string {
+  protected static extractCommand(message: Message): string {
     if (this.isCmdAllowed(message.content, message)) {
-      return this.getCmd(message.content);
+      return this.filterPrefix(message.content);
     }
     // DO NOT LOG ANYTHING HERE - PRIVACY
     throw new NotACommandError();
@@ -39,7 +40,7 @@ export default abstract class Module {
     return cmd.startsWith(PREFIX) && message.author.id !== Globals.OWN_DC_ID;
   }
 
-  private static getCmd(rawCmd: string): string {
+  private static filterPrefix(rawCmd: string): string {
     return rawCmd.substring(PREFIX.length, rawCmd.length);
   }
 

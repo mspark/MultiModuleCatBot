@@ -2,7 +2,7 @@
 /* eslint-disable import/no-unresolved */
 /* eslint-disable import/extensions */
 import { Collection, Guild } from "discord.js";
-import { PREFIX } from "../core/GenericModule";
+import { PREFIX } from "../core/Module";
 import GuildManagementDbService from "./GuildManagementDbService";
 
 export default class GuildRefresher {

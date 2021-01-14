@@ -1,7 +1,7 @@
 /* eslint-disable import/extensions */
 /* eslint-disable import/no-unresolved */
 import { Client, Message, MessageEmbed } from "discord.js";
-import Module from "./GenericModule";
+import Module from "./Module";
 
 const inviteLink = "https://discord.com/oauth2/authorize?client_id=791080285990682665&scope=bot&permissions=126016";
 
@@ -47,7 +47,7 @@ export default class CoreModule extends Module {
 
   private static async actionOnMessage(msg: Message): Promise<void> {
     return Module.saveRun(async () => {
-      const cmd = Module.cmdFilter(msg);
+      const cmd = Module.extractCommand(msg);
       if (cmd === "id") { msg.reply("Your discord id: \" + msg.author.id"); }
       if (cmd === "invite") { msg.channel.send(inviteLink); }
     });

@@ -4,7 +4,7 @@ import {
   Client, Guild, Message, MessageEmbed,
 } from "discord.js";
 import CmdActionAsync from "../core/CmdActionAsync";
-import Module, { PREFIX } from "../core/GenericModule";
+import Module, { PREFIX } from "../core/Module";
 import { Perm } from "../core/types";
 import DbService from "../database/DbService";
 import GuildManagementDbService from "./GuildManagementDbService";
@@ -47,7 +47,7 @@ export default class GuildManagementModule extends Module {
         Module.saveRun(async () => {
           if (message.guild) {
             this.customDbService.updateLastCommand(message.guild.id);
-            const cmd = Module.cmdFilter(message);
+            const cmd = Module.extractCommand(message);
             if (cmd.startsWith("setprefix")) {
               this.changePrefix(message, message.guild);
             }
@@ -69,7 +69,7 @@ export default class GuildManagementModule extends Module {
     private changePrefix(message: Message, guild: Guild): void {
       // todo check remote code execution or other unsafe stuff
       const dbGuild = this.customDbService.getGuild(guild.id);
-      const params = Module.cmdFilter(message).split(" ");
+      const params = Module.extractCommand(message).split(" ");
       if (params.length === 2 && params[1].length < 5 && dbGuild) {
         const actionAsPromise: Promise<void> = new Promise(
           () => this.customDbService.updatePrefix(dbGuild, params[1]),
