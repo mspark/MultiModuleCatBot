@@ -31,6 +31,13 @@ export default class GuildManagementDbService extends GenericDbService {
       .value();
   }
 
+  updatePrefix(guild: GuildSchema, newPrefix: string): GuildSchema | undefined {
+    return this.db.get(GUILD_DB_IDENTIFIER)
+      .find({ guildId: guild.guildId })
+      .assign({ prefix: newPrefix })
+      .value();
+  }
+
   removeGuild(gid: string): void {
     this.db
       .get(GUILD_DB_IDENTIFIER)

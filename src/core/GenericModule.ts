@@ -23,6 +23,10 @@ export default abstract class Module {
     });
   }
 
+  /**
+   * Returns the real invoked command without prefix. Can throw a NotACommandError.
+   * @param message Discord message which probably contains a command
+   */
   protected static cmdFilter(message: Message): string {
     if (this.isCmdAllowed(message.content, message)) {
       return this.getCmd(message.content);
@@ -31,11 +35,11 @@ export default abstract class Module {
     throw new NotACommandError();
   }
 
-  protected static isCmdAllowed(cmd: string, message: Message): boolean {
+  private static isCmdAllowed(cmd: string, message: Message): boolean {
     return cmd.startsWith(PREFIX) && message.author.id !== Globals.OWN_DC_ID;
   }
 
-  protected static getCmd(rawCmd: string): string {
+  private static getCmd(rawCmd: string): string {
     return rawCmd.substring(PREFIX.length, rawCmd.length);
   }
 
