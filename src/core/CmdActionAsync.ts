@@ -7,6 +7,8 @@ import { Perm } from "./types";
 export default class CmdActionAsync {
     private neededPerms: Perm[];
 
+    private privateMessageAllowed = true;
+
     constructor(private action: (message: Message) => Promise<void>) {
       this.neededPerms = [Perm.EVERYONE];
     }
@@ -21,17 +23,31 @@ export default class CmdActionAsync {
       return this;
     }
 
+    public setToGuildOnly(): CmdActionAsync {
+      this.privateMessageAllowed = false;
+      return this;
+    }
+
     public async invoke(message: Message, actualPermission: Perm[]): Promise<void> {
+      let replyErrorMesasge = "";
+      if (this.isMessageScopeAllowed(message)) {
+        if (this.checkPermission(actualPermission)) {
+          return this.action(message);
+        }
+        replyErrorMesasge = "Not enough permission to do this";
+      } else {
+        replyErrorMesasge = "This command is not available in this message scope.";
+      }
+      return new Promise(() => message.reply(replyErrorMesasge));
+    }
+
+    private checkPermission(actualPermission: Perm[]): boolean {
       if (actualPermission.length === 0) {
         actualPermission.push(Perm.EVERYONE);
       }
-      const matches = this.neededPerms
+      return this.neededPerms
         .map((p) => actualPermission.includes(p))
         .reduce((a, b) => a && b);
-      if (matches) {
-        return this.action(message);
-      }
-      return new Promise(() => message.reply("Not enough permission to do this"));
     }
 
     public async invokeWithAutoPermissions(message: Message): Promise<void> {
@@ -40,5 +56,9 @@ export default class CmdActionAsync {
         perm.push(Perm.BOT_ADMIN);
       }
       await this.invoke(message, perm);
+    }
+
+    public isMessageScopeAllowed(message: Message) : boolean {
+      return this.privateMessageAllowed || !!message.guild;
     }
 }

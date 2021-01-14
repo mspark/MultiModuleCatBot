@@ -80,7 +80,7 @@ export default class CatModule extends Module {
           .setNeededPermission([Perm.BOT_ADMIN]);
       case "reset":
         return new CmdActionAsync((message) => new Promise(() => this.resetCache(message.guild?.id ?? "0")))
-          .setNeededPermission([Perm.BOT_ADMIN]);
+          .setNeededPermission([Perm.BOT_ADMIN]).setToGuildOnly();
       case "reset all":
         return new CmdActionAsync((message) => this.resetCacheForAll(message))
           .setNeededPermission([Perm.BOT_ADMIN]);
@@ -88,14 +88,14 @@ export default class CatModule extends Module {
         return new CmdActionAsync((message) => this.list(message))
           .setNeededPermission([Perm.BOT_ADMIN]);
       case "cat": case "c": case "p":
-        return new CmdActionAsync((message) => this.sendPic(message));
+        return new CmdActionAsync((message) => this.sendPic(message)).setToGuildOnly();
       case "leaderboard": case "lb":
         return new CmdActionAsync((message) => new Promise(() => this.sendLeaderboard(message)));
       case "help cat admin":
         return new CmdActionAsync((message) => CatModule.sendAdminHelp(message))
           .setNeededPermission([Perm.BOT_ADMIN]);
       case "cat list":
-        return new CmdActionAsync((message) => this.sendCatList(message));
+        return new CmdActionAsync((message) => this.sendCatList(message)).setToGuildOnly();
       default:
         return new CmdActionAsync((message) => this.testAndSendPic(message, cmd));
     }
