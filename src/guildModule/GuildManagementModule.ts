@@ -71,9 +71,10 @@ export default class GuildManagementModule extends Module {
       const dbGuild = this.customDbService.getGuild(guild.id);
       const params = Module.extractCommand(message).split(" ");
       if (params.length === 2 && params[1].length < 5 && dbGuild) {
-        const actionAsPromise: Promise<void> = new Promise(
-          () => this.customDbService.updatePrefix(dbGuild, params[1]),
-        );
+        const actionAsPromise: Promise<void> = new Promise(() => {
+          this.customDbService.updatePrefix(dbGuild, params[1]);
+          message.reply("Prefix changed.");
+        });
         new CmdActionAsync(() => actionAsPromise)
           .setNeededPermission([Perm.GUILD_ADMIN])
           .setToGuildOnly()

@@ -55,6 +55,9 @@ export default class CmdActionAsync {
       if (Utils.isBotAdmin(message.author.id)) {
         perm.push(Perm.BOT_ADMIN);
       }
+      if (message.member?.hasPermission("ADMINISTRATOR")) {
+        perm.push(Perm.GUILD_ADMIN);
+      }
       await this.invoke(message, perm);
     }
 
