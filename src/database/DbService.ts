@@ -6,6 +6,9 @@ import { default as FileAsync } from "lowdb/adapters/FileAsync";
 import { DbSchema, defaultSchema } from "./DbSchema";
 import GenericDbService from "./GenericDbService";
 
+interface DBServiceFunc {
+  (db: lowdb.LowdbAsync<DbSchema>): GenericDbService;
+}
 export default class DbService {
     private db!: lowdb.LowdbAsync<DbSchema>;
 
@@ -34,7 +37,7 @@ export default class DbService {
     }
 
     // eslint-disable-next-line no-unused-vars
-    public getCustomDbService(func: (db: lowdb.LowdbAsync<DbSchema>) => GenericDbService): GenericDbService {
+    public getCustomDbService(func: DBServiceFunc): GenericDbService {
       return func(this.db);
     }
 }

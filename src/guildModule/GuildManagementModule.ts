@@ -54,7 +54,7 @@ export default class GuildManagementModule extends Module implements PrefixProvi
             this.customDbService.updateLastCommand(message.guild.id);
             const cmd = Module.extractCommand(message);
             if (cmd.startsWith("setprefix")) {
-              this.changePrefix(message, message.guild);
+              this.invokePrefixChange(message, message.guild);
             }
           }
         });
@@ -71,16 +71,16 @@ export default class GuildManagementModule extends Module implements PrefixProvi
       });
     }
 
-    private changePrefix(message: Message, guild: Guild): void {
+    private invokePrefixChange(message: Message, guild: Guild): void {
       // todo check remote code execution or other unsafe stuff
       const dbGuild = this.customDbService.getGuild(guild.id);
       const params = Module.extractCommand(message).split(" ");
       if (params.length === 2 && params[1].length < 5 && dbGuild) {
-        const actionAsPromise: Promise<void> = new Promise(() => {
+        const actionAsPromise = (msg: Message) => {
           this.customDbService.updatePrefix(dbGuild, params[1]);
-          message.reply("Prefix changed.");
-        });
-        new CmdActionAsync(() => actionAsPromise)
+          msg.reply("Prefix changed.");
+        };
+        new CmdActionAsync((msg) => new Promise(() => actionAsPromise(msg)))
           .setNeededPermission([Perm.GUILD_ADMIN])
           .setToGuildOnly()
           .invokeWithAutoPermissions(message);
