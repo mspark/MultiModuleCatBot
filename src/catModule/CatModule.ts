@@ -4,7 +4,7 @@ import { Client, Message, MessageEmbed } from "discord.js";
 
 import { CatBotGuildStatistic, PictureCacheModel, NoPicturesLeftError } from "./types";
 import { Utils } from "../Utils";
-import Module, { PREFIX } from "../core/Module";
+import Module from "../core/Module";
 import CatDbService from "./CatDbService";
 import PicturesFileReader from "./PicturesFileReader";
 import DbService from "../database/DbService";
@@ -33,8 +33,7 @@ export default class CatModule extends Module {
   }
 
   // eslint-disable-next-line class-methods-use-this
-  public helpPage(): MessageEmbed {
-    const P = PREFIX; // just shorter
+  public helpPage(P: string): MessageEmbed {
     return new MessageEmbed()
       .setColor("#0099ff")
       .setTitle("🐈Help Page for Personal Cat Pictures!🐈")
@@ -48,7 +47,7 @@ export default class CatModule extends Module {
   }
 
   private static sendAdminHelp(message: Message): Promise<void> {
-    const P = PREFIX; // just shorter
+    const P = Module.getPrefix(message);
     const embed = new MessageEmbed()
       .setColor("#450000")
       .setTitle("Help Page for Personal Cat Pictures!")

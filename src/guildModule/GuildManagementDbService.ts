@@ -58,4 +58,11 @@ export default class GuildManagementDbService extends GenericDbService {
       .assign({ lastAction: new Date() })
       .write();
   }
+
+  getGuildPrefix(gid: string): string | undefined {
+    return this.db.get(GUILD_DB_IDENTIFIER)
+      .find({ guildId: gid })
+      .value()
+      ?.prefix;
+  }
 }

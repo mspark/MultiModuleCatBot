@@ -2,7 +2,7 @@
 /* eslint-disable import/no-unresolved */
 /* eslint-disable import/extensions */
 import { Collection, Guild } from "discord.js";
-import { PREFIX } from "../core/Module";
+import { DEFAULT_PREFIX } from "../core/Module";
 import GuildManagementDbService from "./GuildManagementDbService";
 
 export default class GuildRefresher {
@@ -17,7 +17,7 @@ export default class GuildRefresher {
         this.customDbService.addGuild({
           guildId: gid,
           isActive: true,
-          prefix: PREFIX,
+          prefix: DEFAULT_PREFIX,
           guildName: this.guilds.get(gid)?.name ?? "unknown",
           lastAction: new Date(),
         });

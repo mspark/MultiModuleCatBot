@@ -2,12 +2,32 @@
 /* eslint-disable import/extensions */
 import { Client, Message, MessageEmbed } from "discord.js";
 import { Globals } from "../Utils";
+import PrefixGuildProvider from "./PrefixGuildProvider";
 import { NotACommandError } from "./types";
 
-export const PREFIX = "!";
+export const DEFAULT_PREFIX = "!";
 export const STATS_PREFIX = "stats";
 
+const isProvider = (variable):
+  variable is PrefixGuildProvider => (variable as PrefixGuildProvider).provideCustomPrefix !== undefined;
+
 export default abstract class Module {
+  private static modules: Module[]
+
+  public static init(modules: Module[]): void {
+    if (this.modules) {
+      throw new Error("Already defined");
+    }
+    this.modules = modules;
+  }
+
+  public static getModules(): Module[] {
+    if (!this.modules) {
+      throw new Error("Modules not intialized");
+    }
+    return this.modules;
+  }
+
   public registerBasicCommands(client: Client): void {
     client.on("message", (msg: Message) => {
       const statsCmd = `${STATS_PREFIX} ${this.moduleName()}`;
@@ -17,7 +37,8 @@ export default abstract class Module {
         if (cmd === statsCmd.trim()) {
           this.sendStats(msg);
         } else if (cmd === helpCmd.trim()) {
-          msg.reply(this.helpPage());
+          const prefix = Module.getPrefix(msg);
+          msg.reply(this.helpPage(prefix));
         }
       });
     });
@@ -29,19 +50,20 @@ export default abstract class Module {
    * @param message Discord message which probably contains a command
    */
   protected static extractCommand(message: Message): string {
-    if (this.isCmdAllowed(message.content, message)) {
-      return this.filterPrefix(message.content);
+    const prefix = this.getPrefix(message);
+    if (this.isCmdAllowed(message.content, message, prefix)) {
+      return this.filterPrefix(message.content, prefix);
     }
     // DO NOT LOG ANYTHING HERE - PRIVACY
     throw new NotACommandError();
   }
 
-  private static isCmdAllowed(cmd: string, message: Message): boolean {
-    return cmd.startsWith(PREFIX) && message.author.id !== Globals.OWN_DC_ID;
+  private static isCmdAllowed(cmd: string, message: Message, prefix: string): boolean {
+    return cmd.startsWith(prefix) && message.author.id !== Globals.OWN_DC_ID;
   }
 
-  private static filterPrefix(rawCmd: string): string {
-    return rawCmd.substring(PREFIX.length, rawCmd.length);
+  private static filterPrefix(rawCmd: string, prefix: string): string {
+    return rawCmd.substring(prefix.length, rawCmd.length);
   }
 
   protected static async saveRun(func: () => Promise<void>): Promise<void> {
@@ -65,7 +87,22 @@ export default abstract class Module {
    */
   abstract registerActions(client: Client): void;
 
-  abstract helpPage(): MessageEmbed;
+  abstract helpPage(prefix: string): MessageEmbed;
 
   abstract sendStats(message: Message): void;
+
+  /**
+   * Returns a prefix for the current guild context. If no guild provider is set,
+   * a default prefix is returned.
+   *
+   * @param message The current discord context.
+   */
+  public static getPrefix(message: Message): string {
+    const possiblePrefixProv = Module.getModules().find((a) => a.moduleName() === "guild");
+    if (isProvider(possiblePrefixProv)) {
+      const pp = possiblePrefixProv as PrefixGuildProvider;
+      return pp.provideCustomPrefix(message) ?? DEFAULT_PREFIX;
+    }
+    return DEFAULT_PREFIX;
+  }
 }
