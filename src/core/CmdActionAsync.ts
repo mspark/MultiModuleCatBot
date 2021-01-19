@@ -4,12 +4,16 @@ import { Message } from "discord.js";
 import { Utils } from "../Utils";
 import { Perm } from "./types";
 
+export interface ActionFunc {
+  (message: Message): Promise<void>
+}
+
 export default class CmdActionAsync {
     private neededPerms: Perm[];
 
     private privateMessageAllowed = true;
 
-    constructor(private action: (message: Message) => Promise<void>) {
+    constructor(private action: ActionFunc) {
       this.neededPerms = [Perm.EVERYONE];
     }
 
@@ -18,7 +22,7 @@ export default class CmdActionAsync {
       return this;
     }
 
-    public setAction(func: (message: Message) => Promise<void>): CmdActionAsync {
+    public setAction(func: ActionFunc): CmdActionAsync {
       this.action = func;
       return this;
     }
