@@ -63,7 +63,7 @@ export default class PicturesFileReader {
       const singleFilePath = files[index];
       // disabled: get an ordered output
       // eslint-disable-next-line no-await-in-loop
-      const catname = await this.catNameFromFile(singleFilePath);
+      const catname = await this.extractCatNameFromFilepath(singleFilePath);
       const pictureCacheEntry: PictureCacheModel = { id: index + 1, picturePath: singleFilePath };
       if (catname) {
         pictureCacheEntry.catName = catname;
@@ -74,7 +74,7 @@ export default class PicturesFileReader {
     return cacheEntrys;
   }
 
-  public async catNameFromFile(path: string): Promise<string | undefined> {
+  public async extractCatNameFromFilepath(path: string): Promise<string | undefined> {
     // first element is always empty; the second element could be the file itself or a dir
     const possibleCatname = this.removeWorkDirFromPath(path).split("/")[1];
     let catname: string | undefined;

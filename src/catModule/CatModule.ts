@@ -75,7 +75,7 @@ export default class CatModule extends Module {
   private actionOnCmd(cmd: string): CmdActionAsync {
     switch (cmd) {
       case "reload": case "r":
-        return new CmdActionAsync((message) => this.reload(message))
+        return new CmdActionAsync((message) => this.reloadCatphotos(message))
           .setNeededPermission([Perm.BOT_ADMIN]);
       case "reset":
         return new CmdActionAsync((message) => new Promise(() => this.resetCache(message.guild?.id ?? "0")))
@@ -96,11 +96,18 @@ export default class CatModule extends Module {
       case "cat list":
         return new CmdActionAsync((message) => this.sendCatList(message)).setToGuildOnly();
       default:
-        return new CmdActionAsync((message) => this.testAndSendPic(message, cmd));
+        return new CmdActionAsync((message) => this.trySearchCatAndSendPic(message, cmd));
     }
   }
 
-  private async filterCatName(cmd: string): Promise<string | undefined> {
+  /**
+   * Method return the catname if given. Throws an error when the given cmd
+   * is no bot command.
+   *
+   * @param cmd
+   * @returns The desired catname when exists in database.
+   */
+  private async tryRetrieveCatnameFromParameter(cmd: string): Promise<string | undefined> {
     if (cmd.startsWith("cat") || cmd.startsWith("c") || cmd.startsWith("pic")) {
       const args = cmd.split(" ");
       const catnames = (await this.picReader.getCatNames()).map((cats) => cats.toLowerCase());
@@ -111,8 +118,8 @@ export default class CatModule extends Module {
     } throw new NotACommandError();
   }
 
-  private async testAndSendPic(message: Message, cmd: string): Promise<void> {
-    const catname = await this.filterCatName(cmd);
+  private async trySearchCatAndSendPic(message: Message, cmd: string): Promise<void> {
+    const catname = await this.tryRetrieveCatnameFromParameter(cmd);
     if (catname) {
       this.sendPic(message, catname);
     } else {
@@ -120,7 +127,7 @@ export default class CatModule extends Module {
     }
   }
 
-  private async reload(message: Message): Promise<void> {
+  private async reloadCatphotos(message: Message): Promise<void> {
     console.log(`Reload invoked from ${message.author}`);
     await message.reply("Reload...");
     await this.picReader.fillCache();
@@ -146,24 +153,19 @@ export default class CatModule extends Module {
       return;
     }
     const guildId = message.guild?.id ?? "0";
-    const getRandomPicObj = async (cat?: string) => {
-      const alreadySentIds = this.catDbService
-        .alreadySentPictures(guildId)
-        .map((entry) => entry.sendPictureId);
-      const randomPicId = await this.generateRandomValidPictureId(alreadySentIds, cat);
-      return this.picReader.getPicturesPath().find((entry) => entry.id === randomPicId);
-    };
-    let randomPicObj: PictureCacheModel | undefined;
+
+    let pictureCacheEntry: PictureCacheModel;
     try {
-      randomPicObj = await getRandomPicObj(catname);
-    } catch (e) {
+      pictureCacheEntry = await this.retreiveRandomPicCacheEntry(guildId, catname);
+    } catch (e) { // NoPicturesLeftError
       message.channel.send({
         content: "All photos were watched on this server! Starting again!",
       });
       await this.resetCache(guildId);
-      randomPicObj = await getRandomPicObj();
+      pictureCacheEntry = await this.retreiveRandomPicCacheEntry(guildId, catname);
     }
-    this.sendPictureMessage(message, randomPicObj); // dont wait here
+
+    this.sendPictureMessage(message, pictureCacheEntry); // dont wait here
     this.statsDbService.incrementGuildCount(guildId);
     this.statsDbService.incrementOverallCount();
   }
@@ -181,21 +183,39 @@ export default class CatModule extends Module {
     }
   }
 
+  private async retreiveRandomPicCacheEntry(guildId: string, catname?: string): Promise<PictureCacheModel> {
+    const alreadySentIds = this.catDbService
+      .alreadySentPictures(guildId)
+      .map((entry) => entry.sendPictureId);
+    const randomPicId = await this.generateRandomValidPictureId(alreadySentIds, catname); // probably throws
+    const pic = this.picReader.getPicturesPath().find((entry) => entry.id === randomPicId);
+    if (!pic) {
+      throw new Error("Possible database corruption. Missing id in database");
+    }
+    return pic;
+  }
+
   private async generateRandomValidPictureId(alreadySentIds: number[], catname?: string): Promise<number> {
     let items = this.picReader
       .getPicturesPath()
       .filter((p) => !alreadySentIds.includes(p.id));
     if (catname) {
-      items = await Utils.asyncFilter(items, (p: PictureCacheModel) => this.picReader.catNameFromFile(p.picturePath));
+      items = await this.forAllextractCatnameFromFilePath(items);
+      if (items.length === 0) {
+        // ignores if the files is already send - the user wants this cat! :)
+        items = await this.forAllextractCatnameFromFilePath(this.picReader.getPicturesPath());
+        items = items.filter((picModel) => picModel.catName === catname);
+      }
     }
     if (items.length === 0) {
-      if (catname) {
-        // retry without specific cat - this avoids reset database when a cat is specified
-        return this.generateRandomValidPictureId(alreadySentIds);
-      }
       throw new NoPicturesLeftError("No valid pictures left");
     }
     return items[Math.floor(Math.random() * items.length)].id;
+  }
+
+  private async forAllextractCatnameFromFilePath(items: PictureCacheModel[]): Promise<PictureCacheModel[]> {
+    return Utils.asyncFilter(items,
+      (p: PictureCacheModel) => this.picReader.extractCatNameFromFilepath(p.picturePath));
   }
 
   private async resetCache(guildId: string): Promise<void> {
