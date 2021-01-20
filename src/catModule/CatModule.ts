@@ -200,10 +200,10 @@ export default class CatModule extends Module {
       .getPicturesPath()
       .filter((p) => !alreadySentIds.includes(p.id));
     if (catname) {
-      items = await this.forAllextractCatnameFromFilePath(items);
+      items = await this.filterAllForCatname(items, catname);
       if (items.length === 0) {
         // ignores if the files is already send - the user wants this cat! :)
-        items = await this.forAllextractCatnameFromFilePath(this.picReader.getPicturesPath());
+        items = await this.filterAllForCatname(this.picReader.getPicturesPath(), catname);
         items = items.filter((picModel) => picModel.catName === catname);
       }
     }
@@ -213,9 +213,10 @@ export default class CatModule extends Module {
     return items[Math.floor(Math.random() * items.length)].id;
   }
 
-  private async forAllextractCatnameFromFilePath(items: PictureCacheModel[]): Promise<PictureCacheModel[]> {
-    return Utils.asyncFilter(items,
+  private async filterAllForCatname(items: PictureCacheModel[], catname: string): Promise<PictureCacheModel[]> {
+    const modelsWithCatnames = await Utils.asyncFilter(items,
       (p: PictureCacheModel) => this.picReader.extractCatNameFromFilepath(p.picturePath));
+    return modelsWithCatnames.filter((picModel) => picModel.catName === catname);
   }
 
   private async resetCache(guildId: string): Promise<void> {
