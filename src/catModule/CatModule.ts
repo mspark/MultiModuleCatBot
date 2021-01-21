@@ -156,13 +156,13 @@ export default class CatModule extends Module {
 
     let pictureCacheEntry: PictureCacheModel;
     try {
-      pictureCacheEntry = await this.retreiveRandomPicCacheEntry(guildId, catname);
+      pictureCacheEntry = await this.tryRetrieveRandomPicCacheEntry(guildId, catname);
     } catch (e) { // NoPicturesLeftError
       message.channel.send({
         content: "All photos were watched on this server! Starting again!",
       });
       await this.resetCache(guildId);
-      pictureCacheEntry = await this.retreiveRandomPicCacheEntry(guildId, catname);
+      pictureCacheEntry = await this.tryRetrieveRandomPicCacheEntry(guildId, catname);
     }
 
     this.sendPictureMessage(message, pictureCacheEntry); // dont wait here
@@ -183,34 +183,40 @@ export default class CatModule extends Module {
     }
   }
 
-  private async retreiveRandomPicCacheEntry(guildId: string, catname?: string): Promise<PictureCacheModel> {
-    const alreadySentIds = this.catDbService
-      .alreadySentPictures(guildId)
-      .map((entry) => entry.sendPictureId);
-    const randomPicId = await this.generateRandomValidPictureId(alreadySentIds, catname); // probably throws
-    const pic = this.picReader.getPicturesPath().find((entry) => entry.id === randomPicId);
-    if (!pic) {
-      throw new Error("Possible database corruption. Missing id in database");
+  private async tryRetrieveRandomPicCacheEntry(guildId: string, catname?: string): Promise<PictureCacheModel> {
+    const items = catname ? await this.retrieveCatPic(guildId, catname) : await this.getNotSendPictures(guildId); 
+    if (items.length > 0) {
+      // (still pictures left)  
+      return items[Math.floor(Math.random() * items.length)];
     }
-    return pic;
+    throw new NoPicturesLeftError("No valid pictures left");
   }
 
-  private async generateRandomValidPictureId(alreadySentIds: number[], catname?: string): Promise<number> {
-    let items = this.picReader
+  private async getNotSendPictures(guildId: string): Promise<PictureCacheModel[]> {
+    return this.picReader
       .getPicturesPath()
-      .filter((p) => !alreadySentIds.includes(p.id));
-    if (catname) {
-      items = await this.filterAllForCatname(items, catname);
-      if (items.length === 0) {
-        // ignores if the files is already send - the user wants this cat! :)
-        items = await this.filterAllForCatname(this.picReader.getPicturesPath(), catname);
-        items = items.filter((picModel) => picModel.catName === catname);
-      }
+      .filter(picturePath => this.catDbService
+          .alreadySentPictures(guildId)
+          .map(entry => entry.sendPictureId)
+          .includes(picturePath.id)
+      );
+  }
+
+  /**
+   * Returns a cat pic. Photos of the given cat which weren't send yet, are preferred.
+   * 
+   * @param guildId Specifies the discord server
+   * @param catname The desired cat
+   */
+  private async retrieveCatPic(guildId: string, catname: string): Promise<PictureCacheModel[]> {
+    const notSendPictures = await this.getNotSendPictures(guildId);
+    let picsWithCatname = await this.filterAllForCatname(notSendPictures, catname);
+    if (picsWithCatname.length === 0) {
+      // the user wants to see a cat where all photos are already watched once
+      // To solve this: don't filter the already send and use all pictures
+      picsWithCatname = await this.filterAllForCatname(this.picReader.getPicturesPath(), catname);
     }
-    if (items.length === 0) {
-      throw new NoPicturesLeftError("No valid pictures left");
-    }
-    return items[Math.floor(Math.random() * items.length)].id;
+    return picsWithCatname;
   }
 
   private async filterAllForCatname(items: PictureCacheModel[], catname: string): Promise<PictureCacheModel[]> {
