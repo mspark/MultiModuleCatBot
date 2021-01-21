@@ -2,8 +2,7 @@
 /* eslint-disable import/extensions */
 import { Client, Message, MessageEmbed } from "discord.js";
 
-import { CatBotGuildStatistic, PictureCacheModel, NoPicturesLeftError } from "./types";
-import { Utils } from "../Utils";
+import { CatBotGuildStatistic, PictureCacheModel } from "./types";
 import Module from "../core/Module";
 import CatDbService from "./CatDbService";
 import PicturesFileReader from "./PicturesFileReader";
@@ -12,6 +11,7 @@ import GuildManagementDbService from "../guildModule/GuildManagementDbService";
 import CatStatisticsDbService from "./CatStatisticsDbService";
 import CmdActionAsync from "../core/CmdActionAsync";
 import { NotACommandError, Perm } from "../core/types";
+import CatPicturesFinder from "./CatPicturesFinder";
 
 export default class CatModule extends Module {
   private catDbService: CatDbService;
@@ -100,33 +100,6 @@ export default class CatModule extends Module {
     }
   }
 
-  /**
-   * Method return the catname if given. Throws an error when the given cmd
-   * is no bot command.
-   *
-   * @param cmd
-   * @returns The desired catname when exists in database.
-   */
-  private async tryRetrieveCatnameFromParameter(cmd: string): Promise<string | undefined> {
-    if (cmd.startsWith("cat") || cmd.startsWith("c") || cmd.startsWith("pic")) {
-      const args = cmd.split(" ");
-      const catnames = (await this.picReader.getCatNames()).map((cats) => cats.toLowerCase());
-      if (catnames.includes(args[1].toLowerCase())) { // ex. input: <cmd> <cat>: ["cat", "Gino"]
-        return args[1];
-      }
-      return undefined; // TODO make this method more fancy!
-    } throw new NotACommandError();
-  }
-
-  private async trySearchCatAndSendPic(message: Message, cmd: string): Promise<void> {
-    const catname = await this.tryRetrieveCatnameFromParameter(cmd);
-    if (catname) {
-      this.sendPic(message, catname);
-    } else {
-      message.channel.send("Cat not found");
-    }
-  }
-
   private async reloadCatphotos(message: Message): Promise<void> {
     console.log(`Reload invoked from ${message.author}`);
     await message.reply("Reload...");
@@ -155,19 +128,47 @@ export default class CatModule extends Module {
     const guildId = message.guild?.id ?? "0";
 
     let pictureCacheEntry: PictureCacheModel;
+    const catFinder = new CatPicturesFinder(this.picReader, this.catDbService.alreadySentPictures(guildId), catname);
     try {
-      pictureCacheEntry = await this.tryRetrieveRandomPicCacheEntry(guildId, catname);
+      pictureCacheEntry = await catFinder.tryRetrieveRandomPicCacheEntry();
     } catch (e) { // NoPicturesLeftError
       message.channel.send({
         content: "All photos were watched on this server! Starting again!",
       });
       await this.resetCache(guildId);
-      pictureCacheEntry = await this.tryRetrieveRandomPicCacheEntry(guildId, catname);
+      pictureCacheEntry = await catFinder.tryRetrieveRandomPicCacheEntry();
     }
 
     this.sendPictureMessage(message, pictureCacheEntry); // dont wait here
     this.statsDbService.incrementGuildCount(guildId);
     this.statsDbService.incrementOverallCount();
+  }
+
+  /**
+   * Method return the catname if given. Throws an error when the given cmd
+   * is no bot command.
+   *
+   * @param cmd
+   * @returns The desired catname when exists in database.
+   */
+  private async tryRetrieveCatnameFromParameter(cmd: string): Promise<string | undefined> {
+    if (cmd.startsWith("cat") || cmd.startsWith("c") || cmd.startsWith("pic")) {
+      const args = cmd.split(" ");
+      const catnames = (await this.picReader.getCatNames()).map((cats) => cats.toLowerCase());
+      if (catnames.includes(args[1].toLowerCase())) { // ex. input: <cmd> <cat>: ["cat", "Gino"]
+        return args[1];
+      }
+      return undefined; // TODO make this method more fancy!
+    } throw new NotACommandError();
+  }
+    
+  public async trySearchCatAndSendPic(message: Message, cmd: string): Promise<void> {
+    const catname = await this.tryRetrieveCatnameFromParameter(cmd);
+    if (catname) {
+      this.sendPic(message, catname);
+    } else {
+      message.channel.send("Cat not found");
+    }
   }
 
   private async sendPictureMessage(message: Message, pictureSchema: PictureCacheModel | undefined): Promise<void> {
@@ -181,48 +182,6 @@ export default class CatModule extends Module {
       });
       await this.catDbService.addSendPicture({ guildId: message.guild?.id ?? "0", sendPictureId: pictureSchema.id });
     }
-  }
-
-  private async tryRetrieveRandomPicCacheEntry(guildId: string, catname?: string): Promise<PictureCacheModel> {
-    const items = catname ? await this.retrieveCatPic(guildId, catname) : await this.getNotSendPictures(guildId); 
-    if (items.length > 0) {
-      // (still pictures left)  
-      return items[Math.floor(Math.random() * items.length)];
-    }
-    throw new NoPicturesLeftError("No valid pictures left");
-  }
-
-  private async getNotSendPictures(guildId: string): Promise<PictureCacheModel[]> {
-    return this.picReader
-      .getPicturesPath()
-      .filter(picturePath => this.catDbService
-          .alreadySentPictures(guildId)
-          .map(entry => entry.sendPictureId)
-          .includes(picturePath.id)
-      );
-  }
-
-  /**
-   * Returns a cat pic. Photos of the given cat which weren't send yet, are preferred.
-   * 
-   * @param guildId Specifies the discord server
-   * @param catname The desired cat
-   */
-  private async retrieveCatPic(guildId: string, catname: string): Promise<PictureCacheModel[]> {
-    const notSendPictures = await this.getNotSendPictures(guildId);
-    let picsWithCatname = await this.filterAllForCatname(notSendPictures, catname);
-    if (picsWithCatname.length === 0) {
-      // the user wants to see a cat where all photos are already watched once
-      // To solve this: don't filter the already send and use all pictures
-      picsWithCatname = await this.filterAllForCatname(this.picReader.getPicturesPath(), catname);
-    }
-    return picsWithCatname;
-  }
-
-  private async filterAllForCatname(items: PictureCacheModel[], catname: string): Promise<PictureCacheModel[]> {
-    const modelsWithCatnames = await Utils.asyncFilter(items,
-      (p: PictureCacheModel) => this.picReader.extractCatNameFromFilepath(p.picturePath));
-    return modelsWithCatnames.filter((picModel) => picModel.catName === catname);
   }
 
   private async resetCache(guildId: string): Promise<void> {
