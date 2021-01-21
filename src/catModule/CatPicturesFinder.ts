@@ -49,6 +49,6 @@ export default class CatPicturesFinder {
   private async filterAllForCatname(items: PictureCacheModel[], catname: string): Promise<PictureCacheModel[]> {
     const modelsWithCatnames = await Utils.asyncFilter(items,
       (p: PictureCacheModel) => this.picReader.extractCatNameFromFilepath(p.picturePath));
-    return modelsWithCatnames.filter((picModel) => picModel.catName === catname);
+    return modelsWithCatnames.filter((picModel) => picModel.catName.toLowerCase() === catname.toLowerCase());
   }
 }
