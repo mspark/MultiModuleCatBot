@@ -176,10 +176,15 @@ export default class CatModule extends Module {
       console.log("BOT ERROR! Database is corrupt");
       await message.channel.send("Bot error. Pls contact admin");
     } else {
-      await message.channel.send({
-        content: `A photo of ${pictureSchema.catName ?? "a cat"}`,
-        files: [pictureSchema?.picturePath],
-      });
+      const embed = new MessageEmbed()
+        .setDescription(`This is a photo of ${pictureSchema.catName ?? "a cat"}`)
+        .addField("Name:", pictureSchema.catName)
+        .addField("Picture Date:", "TODO")
+        .attachFiles([pictureSchema.picturePath]);
+      if (pictureSchema.author) {
+        embed.setAuthor(pictureSchema.author);
+      }
+      message.channel.send(embed);
       await this.catDbService.addSendPicture({ guildId: message.guild?.id ?? "0", sendPictureId: pictureSchema.id });
     }
   }

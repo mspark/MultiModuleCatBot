@@ -2,6 +2,8 @@ export interface PictureCacheModel {
   id: number,
   catName?: string,
   picturePath: string,
+  author?: string,
+  timestamp? : Date
 }
 
 export interface SendPicturesModel {
