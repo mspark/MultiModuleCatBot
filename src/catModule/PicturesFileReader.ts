@@ -1,6 +1,8 @@
 /* eslint-disable import/no-unresolved */
 /* eslint-disable import/extensions */
 import Filesystem from "fs/promises";
+import ExifImage from "exif";
+import Util from "util";
 import DbService from "../database/DbService";
 import { Utils } from "../Utils";
 import CatDbService from "./CatDbService";
@@ -64,7 +66,9 @@ export default class PicturesFileReader {
       // disabled: get an ordered output
       // eslint-disable-next-line no-await-in-loop
       const catname = await this.extractCatNameFromFilepath(singleFilePath);
-      const pictureCacheEntry: PictureCacheModel = { id: index + 1, picturePath: singleFilePath };
+      let pictureCacheEntry: PictureCacheModel = { id: index + 1, picturePath: singleFilePath };
+      // eslint-disable-next-line no-await-in-loop
+      pictureCacheEntry = await PicturesFileReader.fillWithExifData(pictureCacheEntry);
       if (catname) {
         pictureCacheEntry.catName = catname;
       }
@@ -72,6 +76,19 @@ export default class PicturesFileReader {
       console.log(`Found ${singleFilePath}`);
     }
     return cacheEntrys;
+  }
+
+  private static async fillWithExifData(picEntry: PictureCacheModel): Promise<PictureCacheModel> {
+    const retrieveExifData = Util.promisify(ExifImage);
+    const newPicEntry = picEntry;
+    try {
+      const data = await retrieveExifData(picEntry.picturePath);
+      newPicEntry.createDate = data.exif.CreateDate;
+      newPicEntry.cameraModel = data.image.Model;
+    } catch (e) {
+      console.log(e);
+    }
+    return newPicEntry;
   }
 
   public async extractCatNameFromFilepath(path: string): Promise<string | undefined> {

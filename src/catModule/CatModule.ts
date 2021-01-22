@@ -179,10 +179,15 @@ export default class CatModule extends Module {
       const embed = new MessageEmbed()
         .setDescription(`This is a photo of ${pictureSchema.catName ?? "a cat"}`)
         .addField("Name:", pictureSchema.catName)
-        .addField("Picture Date:", "TODO")
         .attachFiles([pictureSchema.picturePath]);
       if (pictureSchema.author) {
         embed.setAuthor(pictureSchema.author);
+      }
+      if (pictureSchema.createDate) {
+        embed.addField("From:", pictureSchema.createDate);
+      }
+      if (pictureSchema.cameraModel) {
+        embed.addField("Camera:", pictureSchema.cameraModel);
       }
       message.channel.send(embed);
       await this.catDbService.addSendPicture({ guildId: message.guild?.id ?? "0", sendPictureId: pictureSchema.id });

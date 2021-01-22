@@ -3,7 +3,8 @@ export interface PictureCacheModel {
   catName?: string,
   picturePath: string,
   author?: string,
-  timestamp? : Date
+  createDate? : string
+  cameraModel?: string
 }
 
 export interface SendPicturesModel {
