@@ -39,7 +39,7 @@ export default class PicturesFileReader {
   }
 
   public async fillCache(): Promise<void> {
-    const pictureModels = (await this.readAndParseFiles()).sort();
+    const pictureModels = await this.readAndParseFiles();
     this.catDbService.refreshPicturePath(pictureModels);
     console.log(`Filled cache with ${pictureModels.length} paths`);
     this.picturePaths = pictureModels;
@@ -51,31 +51,28 @@ export default class PicturesFileReader {
   }
 
   public async getRealtivePicPaths(): Promise<string[]> {
-    return PicturesFileReader.readAllFiles(this.dir);
+    return PicturesFileReader.readAllFilenamesRecursive(this.dir);
   }
 
   public async getSubDirectorys(): Promise<string[]> {
-    return PicturesFileReader.readAllDirectory(this.dir);
+    return PicturesFileReader.readAllFilenamesInDir(this.dir);
   }
 
   private async readAndParseFiles(): Promise<PictureCacheModel[]> {
     const files = await this.getRealtivePicPaths();
-    const cacheEntrys: PictureCacheModel[] = [];
-    for (let index = 0; index < files.length; index += 1) {
-      const singleFilePath = files[index];
-      // disabled: get an ordered output
-      // eslint-disable-next-line no-await-in-loop
-      const catname = await this.extractCatNameFromFilepath(singleFilePath);
-      let pictureCacheEntry: PictureCacheModel = { id: index + 1, picturePath: singleFilePath };
-      // eslint-disable-next-line no-await-in-loop
-      pictureCacheEntry = await PicturesFileReader.fillWithExifData(pictureCacheEntry);
-      if (catname) {
-        pictureCacheEntry.catName = catname;
-      }
-      cacheEntrys.push(pictureCacheEntry);
-      console.log(`Found ${singleFilePath}`);
-    }
-    return cacheEntrys;
+    return Promise.all(
+      files.map((singleFilePath) => {
+        console.log(singleFilePath);
+        return this.readFile(singleFilePath);
+      }),
+    );
+  }
+
+  private async readFile(path: string): Promise<PictureCacheModel> {
+    const pic: PictureCacheModel = await PicturesFileReader.fillWithExifData({ id: path, picturePath: path });
+    const catname = await this.extractCatNameFromFilepath(path);
+    pic.catName = catname; // maybe undefined
+    return pic;
   }
 
   private static async fillWithExifData(picEntry: PictureCacheModel): Promise<PictureCacheModel> {
@@ -86,7 +83,7 @@ export default class PicturesFileReader {
       newPicEntry.createDate = data.exif.CreateDate;
       newPicEntry.cameraModel = data.image.Model;
     } catch (e) {
-      console.log(e);
+      console.log(`Image does not support exif data: ${picEntry.picturePath}`);
     }
     return newPicEntry;
   }
@@ -106,7 +103,7 @@ export default class PicturesFileReader {
   }
 
   public async getCatNames(): Promise<string[]> {
-    const dirs = await PicturesFileReader.readAllDirectory(this.dir);
+    const dirs = await PicturesFileReader.readAllFilenamesInDir(this.dir);
     return dirs.map((d) => this.removeWorkDirFromPath(d)).map((cats) => Utils.removeOngoingSlash(cats));
   }
 
@@ -119,15 +116,15 @@ export default class PicturesFileReader {
     return fileStat.isDirectory();
   }
 
-  private static async readAllDirectory(path: string): Promise<string[]> {
+  private static async readAllFilenamesInDir(path: string): Promise<string[]> {
     return PicturesFileReader.getFiles(path, async (f) => PicturesFileReader.isDirectory(f));
   }
 
-  public static async readAllFiles(path: string): Promise<string[]> {
-    const dirs = await PicturesFileReader.readAllDirectory(path);
+  public static async readAllFilenamesRecursive(path: string): Promise<string[]> {
+    const dirs = await PicturesFileReader.readAllFilenamesInDir(path);
     let files = await PicturesFileReader.getFiles(path, async (f) => !dirs.includes(f));
     await Promise.all(
-      dirs.map((d) => PicturesFileReader.readAllFiles(d)),
+      dirs.map((d) => PicturesFileReader.readAllFilenamesRecursive(d)),
     ).then((result) => {
       result.forEach((filesInDir) => {
         files = files.concat(filesInDir);
