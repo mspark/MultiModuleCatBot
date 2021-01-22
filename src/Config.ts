@@ -7,5 +7,6 @@ export const CONFIG = {
   apiToken: process.env.API_TOKEN,
   botAdminList: process.env.BOT_ADMINS?.split(","),
   catPicturesPath: process.env.PICTURE_DIR_PATH,
+  databasePath: process.env.DATABASE_PATH,
   debug: false,
 };

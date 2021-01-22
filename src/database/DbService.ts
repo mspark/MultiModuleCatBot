@@ -3,6 +3,7 @@
 import lowdb from "lowdb";
 // eslint-disable-next-line import/no-named-default
 import { default as FileAsync } from "lowdb/adapters/FileAsync";
+import { CONFIG } from "../Config";
 import { DbSchema, defaultSchema } from "./DbSchema";
 import GenericDbService from "./GenericDbService";
 
@@ -22,7 +23,10 @@ export default class DbService {
     }
 
     private async initDatabase(): Promise<void> {
-      const path = "db.json";
+      const path = CONFIG.databasePath;
+      if (!path) {
+        throw new Error("Pls configure database path in .env");
+      }
       const adapter = new FileAsync(path);
       const db = await lowdb(adapter);
       if (!db) {
@@ -36,7 +40,6 @@ export default class DbService {
       this.db = db;
     }
 
-    // eslint-disable-next-line no-unused-vars
     public getCustomDbService(func: DBServiceFunc): GenericDbService {
       return func(this.db);
     }

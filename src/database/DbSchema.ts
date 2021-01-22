@@ -1,3 +1,4 @@
+/* eslint-disable camelcase */
 /* eslint-disable import/extensions */
 /* eslint-disable import/no-unresolved */
 import { CatBotGuildStatistic, PictureCacheModel, SendPicturesModel } from "../catModule/types";
