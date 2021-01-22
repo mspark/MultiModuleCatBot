@@ -1,5 +1,5 @@
 export interface PictureCacheModel {
-  id: number,
+  id: string,
   catName?: string,
   picturePath: string,
   author?: string,
@@ -9,7 +9,7 @@ export interface PictureCacheModel {
 
 export interface SendPicturesModel {
   guildId: string,
-  sendPictureId: number
+  sendPictureId: string
 }
 
 export interface CatBotGuildStatistic {
