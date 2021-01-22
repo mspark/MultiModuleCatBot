@@ -25,7 +25,7 @@ export default class CatPicturesFinder {
 
   private async getNotSendPictures(): Promise<PictureCacheModel[]> {
     return this.picReader.getPicturesPath()
-      .filter((picturePath) => this.alreadySentPictures
+      .filter((picturePath) => !this.alreadySentPictures
         .map((entry) => entry.sendPictureId)
         .includes(picturePath.id));
   }
