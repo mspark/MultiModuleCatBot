@@ -60,13 +60,29 @@ export default class PicturesFileReader {
 
   private async readAndParseFiles(): Promise<PictureCacheModel[]> {
     const files = await this.getRealtivePicPaths();
-    return Promise.all(
-      files.map(async (singleFilePath) => {
-        const file = await this.readFile(singleFilePath);
-        console.log(`Load: ${singleFilePath}`);
-        return file;
-      }),
-    );
+
+    // return Promise.all(
+    //   files.map(async (singleFilePath) => {
+    //     const file = await this.readFile(singleFilePath);
+    //     console.log(`Load: ${singleFilePath}`);
+    //     return file;
+    //   }),
+    // );
+    /*
+     * We have to choose this option instead of the above.
+     * The Promise.all kills the node process in some environment.
+     * Probably an overflow or something like this.
+     * But through the await inside the loop, we get a good looking sorted output
+     */
+    const picModels: PictureCacheModel[] = [];
+    for (let i = 0; i < files.length; i += 1) {
+      const singleFilePath = files[i];
+      // eslint-disable-next-line no-await-in-loop
+      const pic = await this.readFile(singleFilePath);
+      console.log(`Load ${singleFilePath}`);
+      picModels.push(pic);
+    }
+    return picModels;
   }
 
   private async readFile(path: string): Promise<PictureCacheModel> {
