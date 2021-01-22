@@ -1,15 +1,12 @@
 /* eslint-disable import/no-unresolved */
 /* eslint-disable import/extensions */
 import { Client, Message, MessageEmbed } from "discord.js";
-import { Globals } from "../Utils";
+import { CONFIG } from "../Config";
 import PrefixGuildProvider from "./PrefixGuildProvider";
 import { NotACommandError } from "./types";
 
 export const DEFAULT_PREFIX = "!";
 export const STATS_PREFIX = "stats";
-
-const isProvider = (variable):
-  variable is PrefixGuildProvider => (variable as PrefixGuildProvider).provideCustomPrefix !== undefined;
 
 export default abstract class Module {
   private static modules: Module[]
@@ -59,7 +56,7 @@ export default abstract class Module {
   }
 
   private static isCmdAllowed(cmd: string, message: Message, prefix: string): boolean {
-    return cmd.startsWith(prefix) && message.author.id !== Globals.OWN_DC_ID;
+    return cmd.startsWith(prefix) && !message.author.bot;
   }
 
   private static filterPrefix(rawCmd: string, prefix: string): string {
@@ -72,7 +69,7 @@ export default abstract class Module {
     } catch (e) {
       if (!(e as NotACommandError).name) {
         console.log(e);
-      } else if (Globals.CONFIG.debug) {
+      } else if (CONFIG.debug) {
         console.log(e);
       }
     }
@@ -99,6 +96,10 @@ export default abstract class Module {
    */
   public static getPrefix(message: Message): string {
     const possiblePrefixProv = Module.getModules().find((a) => a.moduleName() === "guild");
+
+    const isProvider = (variable: any):
+      variable is PrefixGuildProvider => (variable as PrefixGuildProvider).provideCustomPrefix !== undefined;
+
     if (isProvider(possiblePrefixProv)) {
       const pp = possiblePrefixProv as PrefixGuildProvider;
       return pp.provideCustomPrefix(message) ?? DEFAULT_PREFIX;

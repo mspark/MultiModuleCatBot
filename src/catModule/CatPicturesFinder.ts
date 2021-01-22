@@ -1,6 +1,6 @@
 /* eslint-disable import/extensions */
-import { Utils } from "../Utils";
 import PicturesFileReader from "./PicturesFileReader";
+import * as Utils from "../Utils";
 import { NoPicturesLeftError, PictureCacheModel, SendPicturesModel } from "./types";
 
 export default class CatPicturesFinder {
@@ -48,8 +48,8 @@ export default class CatPicturesFinder {
   }
 
   private async filterAllForCatname(items: PictureCacheModel[], catname: string): Promise<PictureCacheModel[]> {
-    const modelsWithCatnames = await Utils.asyncFilter(items,
-      (p: PictureCacheModel) => this.picReader.extractCatNameFromFilepath(p.picturePath));
-    return modelsWithCatnames.filter((picModel) => picModel.catName.toLowerCase() === catname.toLowerCase());
+    const pred: Utils.Predicate<PictureCacheModel> = (p) => !!this.picReader.extractCatNameFromFilepath(p.picturePath);
+    const modelsWithCatnames = await Utils.asyncFilter(items, pred);
+    return modelsWithCatnames.filter((p) => p.catName?.toLowerCase() === catname.toLowerCase());
   }
 }

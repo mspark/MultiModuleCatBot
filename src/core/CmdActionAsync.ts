@@ -1,11 +1,15 @@
 /* eslint-disable import/extensions */
 /* eslint-disable import/no-unresolved */
 import { Message } from "discord.js";
-import { Utils } from "../Utils";
+import { CONFIG } from "../Config";
 import { Perm } from "./types";
 
 export interface ActionFunc {
   (message: Message): Promise<void>
+}
+
+function isBotAdmin(discordUserId: string): boolean {
+  return CONFIG.botAdminList?.includes(discordUserId) ?? false;
 }
 
 export default class CmdActionAsync {
@@ -56,7 +60,7 @@ export default class CmdActionAsync {
 
     public async invokeWithAutoPermissions(message: Message): Promise<void> {
       const perm = [Perm.EVERYONE];
-      if (Utils.isBotAdmin(message.author.id)) {
+      if (isBotAdmin(message.author.id)) {
         perm.push(Perm.BOT_ADMIN);
       }
       if (message.member?.hasPermission("ADMINISTRATOR")) {

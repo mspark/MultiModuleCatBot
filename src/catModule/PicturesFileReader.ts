@@ -4,7 +4,7 @@ import Filesystem from "fs/promises";
 import ExifImage from "exif";
 import Util from "util";
 import DbService from "../database/DbService";
-import { Utils } from "../Utils";
+import * as Utils from "../Utils";
 import CatDbService from "./CatDbService";
 import { PictureCacheModel } from "./types";
 
