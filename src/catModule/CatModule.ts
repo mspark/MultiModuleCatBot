@@ -161,7 +161,7 @@ export default class CatModule extends Module {
       return undefined; // TODO make this method more fancy!
     } throw new NotACommandError();
   }
-    
+
   public async trySearchCatAndSendPic(message: Message, cmd: string): Promise<void> {
     const catname = await this.tryRetrieveCatnameFromParameter(cmd);
     if (catname) {

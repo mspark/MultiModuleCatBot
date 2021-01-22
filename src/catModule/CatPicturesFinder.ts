@@ -1,3 +1,4 @@
+/* eslint-disable import/extensions */
 import { Utils } from "../Utils";
 import PicturesFileReader from "./PicturesFileReader";
 import { NoPicturesLeftError, PictureCacheModel, SendPicturesModel } from "./types";
@@ -5,15 +6,16 @@ import { NoPicturesLeftError, PictureCacheModel, SendPicturesModel } from "./typ
 export default class CatPicturesFinder {
   private retrieveAction: () => Promise<PictureCacheModel[]>;
 
-  constructor(private picReader: PicturesFileReader, private alreadySentPictures: SendPicturesModel[], catname?: string) {
-      if (catname) {
-          this.retrieveAction = () => this.retrieveCatPic(catname);
-      } else {
-          this.retrieveAction = () => this.getNotSendPictures();
-      }
+  constructor(private picReader: PicturesFileReader,
+      private alreadySentPictures: SendPicturesModel[], catname?: string) {
+    if (catname) {
+      this.retrieveAction = () => this.retrieveCatPic(catname);
+    } else {
+      this.retrieveAction = () => this.getNotSendPictures();
+    }
   }
-  
-   public async tryRetrieveRandomPicCacheEntry(): Promise<PictureCacheModel> {
+
+  public async tryRetrieveRandomPicCacheEntry(): Promise<PictureCacheModel> {
     const items = await this.retrieveAction();
     if (items.length > 0) {
       return items[Math.floor(Math.random() * items.length)];
@@ -23,15 +25,14 @@ export default class CatPicturesFinder {
 
   private async getNotSendPictures(): Promise<PictureCacheModel[]> {
     return this.picReader.getPicturesPath()
-      .filter(picturePath => this.alreadySentPictures
-          .map(entry => entry.sendPictureId)
-          .includes(picturePath.id)
-      );
+      .filter((picturePath) => this.alreadySentPictures
+        .map((entry) => entry.sendPictureId)
+        .includes(picturePath.id));
   }
 
   /**
    * Returns a cat pic. Photos of the given cat which weren't send yet, are preferred.
-   * 
+   *
    * @param guildId Specifies the discord server
    * @param catname The desired cat
    */
