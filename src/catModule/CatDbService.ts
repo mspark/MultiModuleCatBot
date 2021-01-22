@@ -14,7 +14,7 @@ export default class CatDbService extends GenericDbService {
     return this.db.get(PICTURES_IDENTIFIER).value() ?? [];
   }
 
-  public refreshPicturePath(models: PictureCacheModel[]): void {
+  public refreshPictureCache(models: PictureCacheModel[]): void {
     const pictures = this.db.get(PICTURES_IDENTIFIER);
     pictures.remove(() => true).write(); // delete all
     models.forEach((e) => pictures.push(e).write());

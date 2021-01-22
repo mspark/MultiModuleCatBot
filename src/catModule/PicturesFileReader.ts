@@ -40,8 +40,8 @@ export default class PicturesFileReader {
 
   public async fillCache(): Promise<void> {
     const pictureModels = await this.readAndParseFiles();
-    this.catDbService.refreshPicturePath(pictureModels);
-    console.log(`Filled cache with ${pictureModels.length} paths`);
+    this.catDbService.refreshPictureCache(pictureModels);
+    console.log(`Filled database cache with ${pictureModels.length} files`);
     this.picturePaths = pictureModels;
   }
 
@@ -61,9 +61,10 @@ export default class PicturesFileReader {
   private async readAndParseFiles(): Promise<PictureCacheModel[]> {
     const files = await this.getRealtivePicPaths();
     return Promise.all(
-      files.map((singleFilePath) => {
-        console.log(singleFilePath);
-        return this.readFile(singleFilePath);
+      files.map(async (singleFilePath) => {
+        const file = await this.readFile(singleFilePath);
+        console.log(`Load: ${singleFilePath}`);
+        return file;
       }),
     );
   }
